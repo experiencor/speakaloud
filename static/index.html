@@ -48,8 +48,12 @@ footer {
     </br>
     <span id="final_span" class="final">&nbsp</span>
     <span id="interim_span" class="interim">&nbsp</span>
+    </br>
+    </br>
+    <div id="history" style="width: 900px; height: 500px;"></div>
   </div>
 </body>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
 if (!('webkitSpeechRecognition' in window)) {
   upgrade();
@@ -59,21 +63,20 @@ if (!('webkitSpeechRecognition' in window)) {
   final_span = document.getElementById('final_span')
   interim_span = document.getElementById('interim_span')
   start_img = document.getElementById('start_img')
-  keyword = "lucy"
-  take_the_next_sent = false
 
   var recognition = new window.webkitSpeechRecognition;
   recognition.lang = "en-US"
   recognition.continuous = true;
   recognition.interimResults = true;
 
-  var passage = document.getElementById('passage').textContent.trim().split(" ")
-  var curr_passage_indx = 0
-  var curr_interim_indx = 0
-  var last_curr_passage_indx = 0
-  transcribe(passage[last_curr_passage_indx])
+  var user_id = 1;
+  var passage_id = 5;
+  var trial_id = makeid(16);
+  var passage = "";
+  var curr_passage_indx = 0;
+  var curr_interim_indx = 0;
+  var last_curr_passage_indx = 0;  
 
-  // always listening, always understanding
   recognition.onend = function() {
     recognition.start()
   }
@@ -96,9 +99,11 @@ if (!('webkitSpeechRecognition' in window)) {
       i = curr_interim_indx
       while (i < words.length) {
         if ((curr_passage_indx < passage.length) && 
-          (words[i].toLowerCase() == norm(passage[curr_passage_indx]))) {
+          (norm(words[i].toLowerCase()) == norm(passage[curr_passage_indx]))) {
             curr_passage_indx += 1
             curr_interim_indx = i
+
+            log(user_id, trial_id, passage_id, curr_passage_indx)
         }
         i += 1
       }
@@ -136,10 +141,11 @@ if (!('webkitSpeechRecognition' in window)) {
       const ut = new SpeechSynthesisUtterance('Well done!');
       speechSynthesis.speak(ut);
       reset();
+      draw_bar_chart();
     }
   }
 
-  recognition.start()
+  retrieve_passage(passage_id)
 }
 
 function transcribe(word) {
@@ -160,8 +166,17 @@ function transcribe(word) {
   xhr.send(data);
 }
 
+function log(user_id, trial_id, passage_id, index) {
+  var xhr = new XMLHttpRequest();
+  var url = "log/";
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  var data = JSON.stringify({"user_id": user_id, "trial_id": trial_id, "passage_id": passage_id, "index": index})
+  xhr.send(data);
+}
+
 function norm(word) {
-  return word.toLowerCase().replace(/[\.,\"]/mg, "")
+  return word.toLowerCase().replace(/[\.,\"\'']/mg, "")
 }
 
 function readit() {
@@ -170,6 +185,9 @@ function readit() {
     window.speechSynthesis.speak(msg);
   }
 }
+
+var timeBegan = new Date();
+started = setInterval(clockRunning, 10);  
 
 function clockRunning(){
     var currentTime = new Date()
@@ -186,11 +204,9 @@ function clockRunning(){
         (ms > 99 ? ms : ms > 9 ? "0" + ms : "00" + ms);
 };
 
-var timeBegan = new Date();
-started = setInterval(clockRunning, 10);  
-
 function reset(){
   curr_passage_indx = 0;
+  trial_id = makeid(16);
   html_content = "";
   for (var j = 0; j < passage.length; ++j) {
     html_content += passage[j] + " "
@@ -202,10 +218,101 @@ function reset(){
 }
 
 function stop() {
-    timeStopped = new Date();
-    clearInterval(started);
+  timeStopped = new Date();
+  clearInterval(started);
 }
 
-document.querySelector('reset-button').click();
+function retrieve_passage(id) {  
+  log(user_id, trial_id, passage_id, curr_passage_indx)
+
+  var xhr = new XMLHttpRequest();
+  var url = "retrieve_passage/";
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      var jsonContent = JSON.parse(xhr.responseText);
+      passage = jsonContent["passage"]
+      document.getElementById('passage').innerHTML = passage
+
+      passage = passage.split(" ")
+      transcribe(passage[last_curr_passage_indx])
+      recognition.start()
+    }
+  }
+
+  var data = JSON.stringify({"id": id})
+  xhr.send(data);
+}
+
+function makeid(length) {
+   var result           = '';
+   var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+   var charactersLength = characters.length;
+   for ( var i = 0; i < length; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+   }
+   return result;
+}
+
+google.charts.load('current', {'packages':['bar']});
+google.charts.setOnLoadCallback(draw_bar_chart);
+
+function draw_bar_chart() {
+  var xhr = new XMLHttpRequest();
+  var url = "retrieve_history/";
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      var jsonContent = JSON.parse(xhr.responseText);
+      
+      console.log(jsonContent)
+
+      rows = [["Time", "Duration"]]
+      for (var i = 0; i < jsonContent.length; ++i) {
+        row = jsonContent[i]
+        rows.push([row["start_time"], row["duration"]])
+      }
+
+      console.log(rows)
+
+      var data = new google.visualization.arrayToDataTable(rows);
+
+      var options = {
+        title: 'Chess opening moves',
+        width: 900,
+        legend: { position: 'none' },
+        bars: 'vertical', // Required for Material Bar Charts.
+        axes: {
+          x: {
+            0: { side: 'top', label: 'Percentage'} // Top x-axis.
+          }
+        },
+        bar: { groupWidth: "90%" }
+      };
+
+      var chart = new google.charts.Bar(document.getElementById('history'));
+      chart.draw(data, options);
+    }
+  }
+
+  var data = JSON.stringify({"user_id": user_id, "passage_id": passage_id})
+  xhr.send(data);
+}
+
+document.addEventListener("keypress", function(e) {
+  if (e.keyCode == 32) {
+    readit();
+  }
+});
+
+document.addEventListener("keypress", function(e) {
+  if (e.keyCode == 13) {
+    reset();
+  }
+});
 </script>
 </html>
