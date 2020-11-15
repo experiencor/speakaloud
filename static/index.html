@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<style>
+img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+.interim {
+  color: gray;
+}
+.final {
+  color: black;
+  padding-right: 3px;
+  font-weight: bold;
+}
+footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 50px;
+  margin-bottom: 100px
+}
+</style>
+
+<title> Voice Control Music </title>
+<body>
+  <h1 align="center">Mất bao lâu để bạn đọc đúng đoạn văn này? Let try out.</h1>
+  <div align="center">
+    <span id="passage" class="passage">Plastic bags.
+    </span>
+    </br>
+    </br>
+    <span id="ipa_span" class="ipa">&nbsp</span>
+    </br>
+    <span id="word_span" class="word">&nbsp</span>
+    </br>
+    <button id="readit-button" onClick="readit()">Read It</button>
+    </br>
+    </br>
+    <div>
+      <output id="stopwatch">00:00:00.000</output>
+    </div>
+    <div>
+      <button id="reset-button" onClick="reset()">Reset</button>
+    </div>  
+    </br>
+    </br>
+    <span id="final_span" class="final">&nbsp</span>
+    <span id="interim_span" class="interim">&nbsp</span>
+  </div>
+</body>
+<script type="text/javascript">
+if (!('webkitSpeechRecognition' in window)) {
+  upgrade();
+} else {
+  ipa_span = document.getElementById('ipa_span')
+  word_span = document.getElementById('word_span')
+  final_span = document.getElementById('final_span')
+  interim_span = document.getElementById('interim_span')
+  start_img = document.getElementById('start_img')
+  keyword = "lucy"
+  take_the_next_sent = false
+
+  var recognition = new window.webkitSpeechRecognition;
+  recognition.lang = "en-US"
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  var passage = document.getElementById('passage').textContent.trim().split(" ")
+  var curr_passage_indx = 0
+  var curr_interim_indx = 0
+  var last_curr_passage_indx = 0
+  transcribe(passage[last_curr_passage_indx])
+
+  // always listening, always understanding
+  recognition.onend = function() {
+    recognition.start()
+  }
+
+  recognition.onresult = function(event) {
+    var final_transcript = '';
+    var interim_transcript = '';
+
+    for (var i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        final_transcript += event.results[i][0].transcript;
+      } else {
+        interim_transcript += event.results[i][0].transcript;
+      }
+    }
+
+    if (final_transcript === "") {
+      words = interim_transcript.trim().split(" ")
+
+      i = curr_interim_indx
+      while (i < words.length) {
+        if ((curr_passage_indx < passage.length) && 
+          (words[i].toLowerCase() == norm(passage[curr_passage_indx]))) {
+            curr_passage_indx += 1
+            curr_interim_indx = i
+        }
+        i += 1
+      }
+
+      interim_span.innerHTML = interim_transcript
+    } else {
+      curr_interim_indx = 0
+
+      interim_span.innerHTML = ""
+    }
+
+    if (curr_passage_indx > 0) {
+      html_content = "<strong>"
+      for (var j = 0; j < passage.length; ++j) {
+        html_content += passage[j] + " "
+
+        if (j == curr_passage_indx-1) {
+          html_content += "</strong>"    
+        } 
+      }
+      document.getElementById('passage').innerHTML = html_content
+    }
+
+    if (curr_passage_indx !== last_curr_passage_indx) {
+      last_curr_passage_indx = curr_passage_indx
+
+      console.log(last_curr_passage_indx)
+
+      if (last_curr_passage_indx < passage.length) {
+        transcribe(passage[last_curr_passage_indx])
+      }
+    }
+
+    if (curr_passage_indx == passage.length) {
+      const ut = new SpeechSynthesisUtterance('Well done!');
+      speechSynthesis.speak(ut);
+      reset();
+    }
+  }
+
+  recognition.start()
+}
+
+function transcribe(word) {
+  var xhr = new XMLHttpRequest();
+  var url = "transcribe/";
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      var jsonContent = JSON.parse(xhr.responseText);
+      ipa_span.innerHTML = jsonContent["ipa"]
+      word_span.innerHTML = norm(word)
+    }
+  }
+
+  var data = JSON.stringify({"word": word})
+  xhr.send(data);
+}
+
+function norm(word) {
+  return word.toLowerCase().replace(/[\.,\"]/mg, "")
+}
+
+function readit() {
+  if (curr_passage_indx < passage.length) {
+    var msg = new SpeechSynthesisUtterance(norm(passage[curr_passage_indx]));
+    window.speechSynthesis.speak(msg);
+  }
+}
+
+function clockRunning(){
+    var currentTime = new Date()
+        , timeElapsed = new Date(currentTime - timeBegan)
+        , hour = timeElapsed.getUTCHours()
+        , min = timeElapsed.getUTCMinutes()
+        , sec = timeElapsed.getUTCSeconds()
+        , ms = timeElapsed.getUTCMilliseconds();
+
+    document.getElementById("stopwatch").innerHTML = 
+        (hour > 9 ? hour : "0" + hour) + ":" + 
+        (min > 9 ? min : "0" + min) + ":" + 
+        (sec > 9 ? sec : "0" + sec) + "." + 
+        (ms > 99 ? ms : ms > 9 ? "0" + ms : "00" + ms);
+};
+
+var timeBegan = new Date();
+started = setInterval(clockRunning, 10);  
+
+function reset(){
+  curr_passage_indx = 0;
+  html_content = "";
+  for (var j = 0; j < passage.length; ++j) {
+    html_content += passage[j] + " "
+  }
+  document.getElementById('passage').innerHTML = html_content
+
+  timeBegan = new Date();
+  started = setInterval(clockRunning, 10);  
+}
+
+function stop() {
+    timeStopped = new Date();
+    clearInterval(started);
+}
+
+document.querySelector('reset-button').click();
+</script>
+</html>
