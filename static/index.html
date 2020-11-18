@@ -1,318 +1,341 @@
 <!DOCTYPE html>
 <html>
-<style>
-img {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-}
-.interim {
-  color: gray;
-}
-.final {
-  color: black;
-  padding-right: 3px;
-  font-weight: bold;
-}
-footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 50px;
-  margin-bottom: 100px
-}
-</style>
-
-<title> Voice Control Music </title>
+<head><link rel="stylesheet" href="styles/main.css"/></head>
+<title> Pronunciation Gym </title>
 <body>
-  <h1 align="center">Mất bao lâu để bạn đọc đúng đoạn văn này? Let try out.</h1>
-  <div align="center">
-    <span id="passage" class="passage">Plastic bags.
-    </span>
-    </br>
-    </br>
-    <span id="ipa_span" class="ipa">&nbsp</span>
-    </br>
-    <span id="word_span" class="word">&nbsp</span>
-    </br>
-    <button id="readit-button" onClick="readit()">Read It</button>
-    </br>
-    </br>
-    <div>
-      <output id="stopwatch">00:00:00.000</output>
+    <nav class="slidemenu">
+        <!-- Item 1 -->
+        <input type="radio" name="slideItem" id="slide-item-1" class="slide-toggle" checked/>
+        <label for="slide-item-1"><span onclick="window.location.href='gymnastics';">Gymnastics</span></label>
+
+        <!-- Item 2 -->
+        <input type="radio" name="slideItem" id="slide-item-2" class="slide-toggle"/>
+        <label for="slide-item-2"><span onclick="window.location.href='statistics';">Statistics</span></label>
+
+        <div class="clear"></div>
+        <!-- Bar -->
+        <div class="slider">
+        <div class="bar"></div>
+        </div>
+    </nav>
+    <div style="width: 100%; display: table; margin-top: 50px;">
+        <div style="display: table-row;">
+            <div align="center" style="width: 25%; display: table-cell; vertical-align: top;">
+                <ul class="timer">
+                    <li> 
+                        <span class="hours">00</span>
+                        <p class="hours_ref">hours</p>
+                    </li>
+                    <li class="seperator">:</li>
+                    <li> 
+                        <span class="minutes">00</span>
+                        <p class="minutes_ref">minutes</p>
+                    </li>
+                    <li class="seperator">:</li>
+                    <li> 
+                        <span class="seconds">00</span>
+                        <p class="seconds_ref">seconds</p>
+                    </li>
+                    <li class="seperator">.</li>
+                    <li> 
+                        <span class="milliseconds">000</span>
+                        <p class="milliseconds_ref">milliseconds</p>
+                    </li>
+                </ul>
+            </div>
+            <div style="width: 50%; display: table-cell;"> 
+                <span id="paragraph" class="paragraph" style="font-size: 200%; background: inherit;" ></span>
+            </div>
+            <div align="center" style="display: table-cell; " >
+                <span id="ipa_span" class="ipa" style="font-size: 200%;">&nbsp</span></br>
+                <span id="word_span" class="word" style="font-size: 200%;">&nbsp</span></br>
+                <span id="interim_span" class="interim" style="font-size: 100%;">&nbsp</span>
+                </br>
+            </div>
+        </div>
     </div>
-    <div>
-      <button id="reset-button" onClick="reset()">Reset</button>
-    </div>  
-    </br>
-    </br>
-    <span id="final_span" class="final">&nbsp</span>
-    <span id="interim_span" class="interim">&nbsp</span>
-    </br>
-    </br>
-    <div id="history" style="width: 900px; height: 500px;"></div>
-  </div>
+    <div align="center" style="margin-top: 100px;">
+        <div align="center" id="history" style="width: 900px; height: 500px;"></div>
+    </div>
 </body>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
+// global variables
+var user_id = -1;
+var paragraph_id = 12;
+var session_id = generateRandomString(32);
+
+var paragraph = "";
+var curr_paragraph_indx = 0;
+var curr_interim_indx = 0;
+var last_curr_paragraph_indx = -1; 
+
+var ipa_span = document.getElementById('ipa_span')
+var word_span = document.getElementById('word_span')
+var interim_span = document.getElementById('interim_span') 
+
+var timeBegan = new Date();
+var started = setInterval(clockRunning, 10);
+
+// entry point to client-side logic
 if (!('webkitSpeechRecognition' in window)) {
-  upgrade();
+    upgrade();
 } else {
-  ipa_span = document.getElementById('ipa_span')
-  word_span = document.getElementById('word_span')
-  final_span = document.getElementById('final_span')
-  interim_span = document.getElementById('interim_span')
-  start_img = document.getElementById('start_img')
+    var recognition = new window.webkitSpeechRecognition;
+    recognition.lang = "en-US"
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
-  var recognition = new window.webkitSpeechRecognition;
-  recognition.lang = "en-US"
-  recognition.continuous = true;
-  recognition.interimResults = true;
-
-  var user_id = 1;
-  var passage_id = 5;
-  var trial_id = makeid(16);
-  var passage = "";
-  var curr_passage_indx = 0;
-  var curr_interim_indx = 0;
-  var last_curr_passage_indx = 0;  
-
-  recognition.onend = function() {
-    recognition.start()
-  }
-
-  recognition.onresult = function(event) {
-    var final_transcript = '';
-    var interim_transcript = '';
-
-    for (var i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal) {
-        final_transcript += event.results[i][0].transcript;
-      } else {
-        interim_transcript += event.results[i][0].transcript;
-      }
-    }
-
-    if (final_transcript === "") {
-      words = interim_transcript.trim().split(" ")
-
-      i = curr_interim_indx
-      while (i < words.length) {
-        if ((curr_passage_indx < passage.length) && 
-          (norm(words[i].toLowerCase()) == norm(passage[curr_passage_indx]))) {
-            curr_passage_indx += 1
-            curr_interim_indx = i
-
-            log(user_id, trial_id, passage_id, curr_passage_indx)
-        }
-        i += 1
-      }
-
-      interim_span.innerHTML = interim_transcript
+    if (document.cookie === "") {
+        var user_name = generateRandomString(16)
+        createUser(user_name)
     } else {
-      curr_interim_indx = 0
+        user_id = document.cookie.split(" ")[1]
+        start()
+    }
+}
 
-      interim_span.innerHTML = ""
+function createUser(user_name) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "create_user/" + user_name, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            var jsonContent = JSON.parse(xhr.responseText);
+            user_id = jsonContent["user_id"]
+            document.cookie = user_name + " " + String(user_id)
+            start()
+        }
+    }
+    xhr.send();
+}
+
+function start() {
+    google.charts.load('current', {'packages':['bar']});
+    google.charts.setOnLoadCallback(draw_bar_chart);
+    retrieve_paragraph(paragraph_id)
+
+    recognition.onend = function() {
+        recognition.start()
     }
 
-    if (curr_passage_indx > 0) {
-      html_content = "<strong>"
-      for (var j = 0; j < passage.length; ++j) {
-        html_content += passage[j] + " "
+    recognition.onresult = function(event) {
+        var final_transcript = '';
+        var interim_transcript = '';
 
-        if (j == curr_passage_indx-1) {
-          html_content += "</strong>"    
-        } 
-      }
-      document.getElementById('passage').innerHTML = html_content
+        for (var i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                final_transcript += event.results[i][0].transcript;
+            } else {
+                interim_transcript += event.results[i][0].transcript;
+            }
+        }
+
+        if (final_transcript === "") {
+            words = interim_transcript.trim().split(" ")
+
+            i = curr_interim_indx
+            while (i < words.length) {
+                if ((curr_paragraph_indx < paragraph.length) && 
+                    (norm(words[i].toLowerCase()) == norm(paragraph[curr_paragraph_indx]))) {
+                    curr_paragraph_indx += 1
+                    curr_interim_indx = i
+                    log_event(user_id, session_id, paragraph_id, curr_paragraph_indx)
+                }
+                i += 1
+            }
+
+            interim_span.innerHTML = interim_transcript
+        } else {
+            curr_interim_indx = 0
+            interim_span.innerHTML = ""
+            log_final_sent(user_id, session_id, paragraph_id, final_transcript)
+        }
+
+        if (curr_paragraph_indx > 0) {
+            html_content = "<strong>"
+            for (var j = 0; j < paragraph.length; ++j) {
+                html_content += paragraph[j] + " "
+
+                if (j == curr_paragraph_indx-1) {
+                    html_content += "</strong>"    
+                } 
+            }
+            document.getElementById('paragraph').innerHTML = html_content
+        }
+
+        if (curr_paragraph_indx !== last_curr_paragraph_indx) {
+            last_curr_paragraph_indx = curr_paragraph_indx
+
+            if (curr_paragraph_indx < paragraph.length) {
+                transcribe(paragraph[curr_paragraph_indx])
+            }
+        }
+
+        if (curr_paragraph_indx == paragraph.length) {
+            const ut = new SpeechSynthesisUtterance('Well done!');
+            speechSynthesis.speak(ut);
+            reset();
+            draw_bar_chart();
+        }
     }
 
-    if (curr_passage_indx !== last_curr_passage_indx) {
-      last_curr_passage_indx = curr_passage_indx
-
-      console.log(last_curr_passage_indx)
-
-      if (last_curr_passage_indx < passage.length) {
-        transcribe(passage[last_curr_passage_indx])
-      }
-    }
-
-    if (curr_passage_indx == passage.length) {
-      const ut = new SpeechSynthesisUtterance('Well done!');
-      speechSynthesis.speak(ut);
-      reset();
-      draw_bar_chart();
-    }
-  }
-
-  retrieve_passage(passage_id)
+    recognition.start()    
 }
 
 function transcribe(word) {
-  var xhr = new XMLHttpRequest();
-  var url = "transcribe/";
-  xhr.open("POST", url, true);
-  xhr.setRequestHeader("Content-Type", "application/json");
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "transcribe/" + word, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
 
-  xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4 && xhr.status === 200) {
-      var jsonContent = JSON.parse(xhr.responseText);
-      ipa_span.innerHTML = jsonContent["ipa"]
-      word_span.innerHTML = norm(word)
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            var jsonContent = JSON.parse(xhr.responseText);
+            ipa_span.innerHTML = jsonContent["ipa"]
+            word_span.innerHTML = norm(word)
+        }
     }
-  }
-
-  var data = JSON.stringify({"word": word})
-  xhr.send(data);
+    xhr.send();
 }
 
-function log(user_id, trial_id, passage_id, index) {
-  var xhr = new XMLHttpRequest();
-  var url = "log/";
-  xhr.open("POST", url, true);
-  xhr.setRequestHeader("Content-Type", "application/json");
-  var data = JSON.stringify({"user_id": user_id, "trial_id": trial_id, "passage_id": passage_id, "index": index})
-  xhr.send(data);
+function log_event(user_id, session_id, paragraph_id, index) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "event/", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    var data = JSON.stringify({"user_id": user_id, "session_id": session_id, "paragraph_id": paragraph_id, "index": index})
+    xhr.send(data);
+}
+
+function log_final_sent(user_id, session_id, paragraph_id, sentence) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "final_sent/", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    var data = JSON.stringify({"user_id": user_id, "session_id": session_id, "paragraph_id": paragraph_id, "sentence": sentence})
+    xhr.send(data);
 }
 
 function norm(word) {
-  return word.toLowerCase().replace(/[\.,\"\'']/mg, "")
+    word = word.toLowerCase().replace(/[\.,\"'’]/mg, "")
+    if (word.slice(-1) === "s") {
+        word = word.slice(0, -1)
+    }
+    return word
 }
 
 function readit() {
-  if (curr_passage_indx < passage.length) {
-    var msg = new SpeechSynthesisUtterance(norm(passage[curr_passage_indx]));
-    window.speechSynthesis.speak(msg);
-  }
+    if (curr_paragraph_indx < paragraph.length) {
+        var msg = new SpeechSynthesisUtterance(norm(paragraph[curr_paragraph_indx]));
+        window.speechSynthesis.speak(msg);
+    }
 }
-
-var timeBegan = new Date();
-started = setInterval(clockRunning, 10);  
 
 function clockRunning(){
     var currentTime = new Date()
-        , timeElapsed = new Date(currentTime - timeBegan)
-        , hour = timeElapsed.getUTCHours()
-        , min = timeElapsed.getUTCMinutes()
-        , sec = timeElapsed.getUTCSeconds()
-        , ms = timeElapsed.getUTCMilliseconds();
+    , timeElapsed = new Date(currentTime - timeBegan)
+    , hour = timeElapsed.getUTCHours()
+    , min = timeElapsed.getUTCMinutes()
+    , sec = timeElapsed.getUTCSeconds()
+    , ms = timeElapsed.getUTCMilliseconds();
 
-    document.getElementById("stopwatch").innerHTML = 
-        (hour > 9 ? hour : "0" + hour) + ":" + 
-        (min > 9 ? min : "0" + min) + ":" + 
-        (sec > 9 ? sec : "0" + sec) + "." + 
-        (ms > 99 ? ms : ms > 9 ? "0" + ms : "00" + ms);
+    document.getElementsByClassName("hours")[0].innerHTML = hour > 9 ? hour : "0" + hour
+    document.getElementsByClassName("minutes")[0].innerHTML = min > 9 ? min : "0" + min
+    document.getElementsByClassName("seconds")[0].innerHTML = sec > 9 ? sec : "0" + sec
+    document.getElementsByClassName("milliseconds")[0].innerHTML = ms > 99 ? ms : ms > 9 ? "0" + ms : "00" + ms
 };
 
 function reset(){
-  curr_passage_indx = 0;
-  trial_id = makeid(16);
-  html_content = "";
-  for (var j = 0; j < passage.length; ++j) {
-    html_content += passage[j] + " "
-  }
-  document.getElementById('passage').innerHTML = html_content
+    last_curr_paragraph_indx = -1
+    curr_paragraph_indx = 0;
+    transcribe(paragraph[curr_paragraph_indx])
+    session_id = generateRandomString(32);
+    log_event(user_id, session_id, paragraph_id, curr_paragraph_indx)
 
-  timeBegan = new Date();
-  started = setInterval(clockRunning, 10);  
-}
-
-function stop() {
-  timeStopped = new Date();
-  clearInterval(started);
-}
-
-function retrieve_passage(id) {  
-  log(user_id, trial_id, passage_id, curr_passage_indx)
-
-  var xhr = new XMLHttpRequest();
-  var url = "retrieve_passage/";
-  xhr.open("POST", url, true);
-  xhr.setRequestHeader("Content-Type", "application/json");
-
-  xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4 && xhr.status === 200) {
-      var jsonContent = JSON.parse(xhr.responseText);
-      passage = jsonContent["passage"]
-      document.getElementById('passage').innerHTML = passage
-
-      passage = passage.split(" ")
-      transcribe(passage[last_curr_passage_indx])
-      recognition.start()
+    html_content = "";
+    for (var j = 0; j < paragraph.length; ++j) {
+        html_content += paragraph[j] + " "
     }
-  }
+    document.getElementById('paragraph').innerHTML = html_content
 
-  var data = JSON.stringify({"id": id})
-  xhr.send(data);
+    timeBegan = new Date();
+    started = setInterval(clockRunning, 10);  
 }
 
-function makeid(length) {
-   var result           = '';
-   var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-   var charactersLength = characters.length;
-   for ( var i = 0; i < length; i++ ) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-   }
-   return result;
+function retrieve_paragraph() {  
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "retrieve_paragraph/" + String(paragraph_id), true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            var jsonContent = JSON.parse(xhr.responseText);
+            paragraph = jsonContent["paragraph"]
+            paragraph = paragraph.split(" ")
+            reset()
+        }
+    }
+    xhr.send();
 }
 
-google.charts.load('current', {'packages':['bar']});
-google.charts.setOnLoadCallback(draw_bar_chart);
+function generateRandomString(length) {
+    var result           = '';
+    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    for ( var i = 0; i < length; i++ ) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+}
 
 function draw_bar_chart() {
-  var xhr = new XMLHttpRequest();
-  var url = "retrieve_history/";
-  xhr.open("POST", url, true);
-  xhr.setRequestHeader("Content-Type", "application/json");
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "retrieve_history/" + String(user_id) + "/" + String(paragraph_id), true);
+    xhr.setRequestHeader("Content-Type", "application/json");
 
-  xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4 && xhr.status === 200) {
-      var jsonContent = JSON.parse(xhr.responseText);
-      
-      console.log(jsonContent)
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            var jsonContent = JSON.parse(xhr.responseText);
+            
+            rows = [["Time", "Duration"]]
+            for (var i = 0; i < jsonContent.length; ++i) {
+                row = jsonContent[i]
+                rows.push([i, row["duration"]])
+            }
 
-      rows = [["Time", "Duration"]]
-      for (var i = 0; i < jsonContent.length; ++i) {
-        row = jsonContent[i]
-        rows.push([row["start_time"], row["duration"]])
-      }
+            var data = new google.visualization.arrayToDataTable(rows);
 
-      console.log(rows)
+            var options = {
+                title: 'Chess opening moves',
+                width: 900,
+                legend: { position: 'none' },
+                bars: 'vertical', // Required for Material Bar Charts.
+                axes: {
+                    x: {
+                        0: { side: 'top', label: 'Duration'} // Top x-axis.
+                    }
+                },
+                bar: { groupWidth: "90%" }
+            };
 
-      var data = new google.visualization.arrayToDataTable(rows);
-
-      var options = {
-        title: 'Chess opening moves',
-        width: 900,
-        legend: { position: 'none' },
-        bars: 'vertical', // Required for Material Bar Charts.
-        axes: {
-          x: {
-            0: { side: 'top', label: 'Percentage'} // Top x-axis.
-          }
-        },
-        bar: { groupWidth: "90%" }
-      };
-
-      var chart = new google.charts.Bar(document.getElementById('history'));
-      chart.draw(data, options);
+            var chart = new google.charts.Bar(document.getElementById('history'));
+            chart.draw(data, options);
+        }
     }
-  }
-
-  var data = JSON.stringify({"user_id": user_id, "passage_id": passage_id})
-  xhr.send(data);
+    xhr.send();
 }
 
 document.addEventListener("keypress", function(e) {
-  if (e.keyCode == 32) {
-    readit();
-  }
+    if (e.keyCode == 32) {
+        readit();
+    }
 });
 
 document.addEventListener("keypress", function(e) {
-  if (e.keyCode == 13) {
-    reset();
-  }
+    if (e.keyCode == 13) {
+        reset();
+    }
 });
 </script>
 </html>
