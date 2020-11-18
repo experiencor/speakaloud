@@ -1,50 +1,23 @@
 <!DOCTYPE html>
 <html>
-<style>
-    img {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    .interim {
-        color: gray;
-    }
-    .final {
-        color: black;
-        padding-right: 3px;
-        font-weight: bold;
-    }
-
-    ul.timer {
-        margin: 20px 0;
-        padding: 0;
-        text-align: center;
-        display:inline-block;
-    }
-    ul.timer li {
-        display: inline-block;
-    }
-    ul.timer li span {
-        font-size: 50px;
-        font-weight: 300;
-    }
-    ul.timer li.seperator {
-        font-size: 50px;
-        vertical-align: top;
-    }
-    ul.timer li p {
-        color: #a7abb1;
-        font-size: 14px;
-    }
-
-    #paragraph{
-        max-width: 1024px;
-        display: block;
-    }
-</style>
-
-<title> Voice Control Music </title>
+<head><link rel="stylesheet" href="styles/main.css"/></head>
+<title> Pronunciation Gym </title>
 <body>
+    <nav class="slidemenu">
+        <!-- Item 1 -->
+        <input type="radio" name="slideItem" id="slide-item-1" class="slide-toggle" checked/>
+        <label for="slide-item-1"><span onclick="window.location.href='gymnastics';">Gymnastics</span></label>
+
+        <!-- Item 2 -->
+        <input type="radio" name="slideItem" id="slide-item-2" class="slide-toggle"/>
+        <label for="slide-item-2"><span onclick="window.location.href='statistics';">Statistics</span></label>
+
+        <div class="clear"></div>
+        <!-- Bar -->
+        <div class="slider">
+        <div class="bar"></div>
+        </div>
+    </nav>
     <div style="width: 100%; display: table; margin-top: 50px;">
         <div style="display: table-row;">
             <div align="center" style="width: 25%; display: table-cell; vertical-align: top;">
@@ -89,7 +62,7 @@
 <script type="text/javascript">
 // global variables
 var user_id = -1;
-var paragraph_id = 8;
+var paragraph_id = 12;
 var session_id = generateRandomString(32);
 
 var paragraph = "";
@@ -139,6 +112,8 @@ function createUser(user_name) {
 }
 
 function start() {
+    google.charts.load('current', {'packages':['bar']});
+    google.charts.setOnLoadCallback(draw_bar_chart);
     retrieve_paragraph(paragraph_id)
 
     recognition.onend = function() {
@@ -166,7 +141,7 @@ function start() {
                     (norm(words[i].toLowerCase()) == norm(paragraph[curr_paragraph_indx]))) {
                     curr_paragraph_indx += 1
                     curr_interim_indx = i
-                    log(user_id, session_id, paragraph_id, curr_paragraph_indx)
+                    log_event(user_id, session_id, paragraph_id, curr_paragraph_indx)
                 }
                 i += 1
             }
@@ -175,6 +150,7 @@ function start() {
         } else {
             curr_interim_indx = 0
             interim_span.innerHTML = ""
+            log_final_sent(user_id, session_id, paragraph_id, final_transcript)
         }
 
         if (curr_paragraph_indx > 0) {
@@ -192,8 +168,8 @@ function start() {
         if (curr_paragraph_indx !== last_curr_paragraph_indx) {
             last_curr_paragraph_indx = curr_paragraph_indx
 
-            if (last_curr_paragraph_indx < paragraph.length) {
-                transcribe(paragraph[last_curr_paragraph_indx])
+            if (curr_paragraph_indx < paragraph.length) {
+                transcribe(paragraph[curr_paragraph_indx])
             }
         }
 
@@ -205,7 +181,7 @@ function start() {
         }
     }
 
-    recognition.start()
+    recognition.start()    
 }
 
 function transcribe(word) {
@@ -223,17 +199,30 @@ function transcribe(word) {
     xhr.send();
 }
 
-function log(user_id, session_id, paragraph_id, index) {
+function log_event(user_id, session_id, paragraph_id, index) {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "log/", true);
+    xhr.open("POST", "event/", true);
     xhr.setRequestHeader("Content-Type", "application/json");
 
     var data = JSON.stringify({"user_id": user_id, "session_id": session_id, "paragraph_id": paragraph_id, "index": index})
     xhr.send(data);
 }
 
+function log_final_sent(user_id, session_id, paragraph_id, sentence) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "final_sent/", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    var data = JSON.stringify({"user_id": user_id, "session_id": session_id, "paragraph_id": paragraph_id, "sentence": sentence})
+    xhr.send(data);
+}
+
 function norm(word) {
-    return word.toLowerCase().replace(/[\.,\"'’]/mg, "")
+    word = word.toLowerCase().replace(/[\.,\"'’]/mg, "")
+    if (word.slice(-1) === "s") {
+        word = word.slice(0, -1)
+    }
+    return word
 }
 
 function readit() {
@@ -262,7 +251,7 @@ function reset(){
     curr_paragraph_indx = 0;
     transcribe(paragraph[curr_paragraph_indx])
     session_id = generateRandomString(32);
-    log(user_id, session_id, paragraph_id, curr_paragraph_indx)
+    log_event(user_id, session_id, paragraph_id, curr_paragraph_indx)
 
     html_content = "";
     for (var j = 0; j < paragraph.length; ++j) {
@@ -284,7 +273,6 @@ function retrieve_paragraph() {
             var jsonContent = JSON.parse(xhr.responseText);
             paragraph = jsonContent["paragraph"]
             paragraph = paragraph.split(" ")
-
             reset()
         }
     }
@@ -300,9 +288,6 @@ function generateRandomString(length) {
     }
     return result;
 }
-
-google.charts.load('current', {'packages':['bar']});
-google.charts.setOnLoadCallback(draw_bar_chart);
 
 function draw_bar_chart() {
     var xhr = new XMLHttpRequest();
