@@ -97,6 +97,9 @@ def retrieve_statistics(user_id):
         # compute word statistics
         word_stats = sessions.groupby(["paragraph_id", "word_index"])["duration"].mean().reset_index()
         word_stats = word_stats.sort_values("duration", ascending=False)
+
+        if len(word_stats) == 0:
+            return json.dumps(results)
         
         word_stats = word_stats.head(200)
         word_stats["word"] = word_stats.apply(lambda row: find_word(row["paragraph_id"], int(row["word_index"])), axis=1)
