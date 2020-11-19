@@ -10,6 +10,7 @@ import datetime
 import regex
 import pandas as pd
 from dateutil import parser
+from flask_web_log import Log
 
 time_formt = '%Y-%m-%dT%H:%M:%S.%f'
 
@@ -18,8 +19,11 @@ logger.setLevel(logging.DEBUG)
 
 debug = False
 app = Flask(__name__, static_url_path='')
+app.config["LOG_TYPE"] = "CSV"
 app.secret_key = b'\xd8t\xf3\x0b\x05\\\xc8\x80a\x8a\xe5\x16 \xd9\xf4d\x1dd\xa5\x9a\x82\xb6kh'
 
+
+Log(app)
 
 def make_conn():
     return pymysql.connect(host='localhost',

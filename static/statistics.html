@@ -26,14 +26,13 @@
 </body>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
-google.charts.load('current', {'packages':['bar']});
-
 if (document.cookie !== "") {
     var user_id = document.cookie.split(" ")[1]
-    retrieveStatistics(user_id)
+    google.charts.load('current', {'packages':['bar']});
+    google.charts.setOnLoadCallback(retrieveStatistics);
 }
 
-function retrieveStatistics(user_id) {
+function retrieveStatistics() {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "retrieve_statistics/" + String(user_id), true);
     xhr.setRequestHeader("Content-Type", "application/json");
