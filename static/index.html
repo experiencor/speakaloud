@@ -62,13 +62,13 @@
 <script type="text/javascript">
 // global variables
 var user_id = -1;
-var paragraph_id = 14;
-var session_id = generateRandomString(32);
+var paragraph_id = -1;
+var session_id = generateRandomString(16);
 
 var paragraph = "";
 var curr_paragraph_indx = 0;
-var curr_interim_indx = 0;
 var last_curr_paragraph_indx = -1; 
+var curr_interim_indx = 0;
 
 var ipa_span = document.getElementById('ipa_span')
 var word_span = document.getElementById('word_span')
@@ -121,6 +121,8 @@ function start() {
     }
 
     recognition.onresult = function(event) {
+
+
         var final_transcript = '';
         var interim_transcript = '';
 
@@ -250,7 +252,7 @@ function reset(){
     last_curr_paragraph_indx = -1
     curr_paragraph_indx = 0;
     transcribe(paragraph[curr_paragraph_indx])
-    session_id = generateRandomString(32);
+    session_id = generateRandomString(16);
     log_event(user_id, session_id, paragraph_id, curr_paragraph_indx)
 
     html_content = "";
@@ -337,5 +339,41 @@ document.addEventListener("keypress", function(e) {
         reset();
     }
 });
+
+class StopWatch {
+    constructor() {
+        this.timeElapsed = 0;
+        this.startTime = null;
+        this.lastTime = 0
+    }
+
+    start() {
+        if (!this.startTime) {
+            this.startTime = new Date();
+        }
+    }
+
+    stop() {
+        if (!!this.startTime) {
+            this.timeElapsed += (new Date() - this.startTime);
+            this.startTime = null;
+        }
+    }
+
+    getTime() {
+        if (!this.startTime) {
+            return this.timeElapsed
+        } else {
+            return this.timeElapsed + (new Date() - this.startTime);
+        }
+    }
+
+    getDuration() {
+        var currTime = this.getTime()
+        var duration = currTime - this.lastTime
+        this.lastTime = currTime
+        return duration
+    }
+}
 </script>
 </html>
