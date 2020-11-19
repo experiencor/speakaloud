@@ -12,32 +12,31 @@ import pandas as pd
 from dateutil import parser
 from flask_web_log import Log
 
-time_formt = '%Y-%m-%dT%H:%M:%S.%f'
+app = Flask(__name__, static_url_path='')
+app.secret_key = b'\xd8t\xf3\x0b\x05\\\xc8\x80a\x8a\xe5\x16 \xd9\xf4d\x1dd\xa5\x9a\x82\xb6kh'
 
+# set up logging
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-debug = False
-app = Flask(__name__, static_url_path='')
 app.config["LOG_TYPE"] = "CSV"
-app.secret_key = b'\xd8t\xf3\x0b\x05\\\xc8\x80a\x8a\xe5\x16 \xd9\xf4d\x1dd\xa5\x9a\x82\xb6kh'
-
-
 Log(app)
+
 
 def make_conn():
     return pymysql.connect(host='localhost',
                            user='root',
                            password='root',
-                           db='speaktests',
+                           db='speaktests2',
                            charset='utf8mb4',
                            cursorclass=pymysql.cursors.DictCursor)
 
+
 def normalize(word):
-    word = regex.sub("[\.,\"'’]", "", word)
-    if word == "I":
+    if word in ["I", "I'm"]:
         return word
-    return word.lower()
+    return regex.sub("[\.,\"'’]", "", word).lower()
+
 
 def find_word(paragraph_id, word_index):
     connection = make_conn()
@@ -71,26 +70,20 @@ def statistics():
     return app.send_static_file('statistics.html')
 
 
-@app.route('/retrieve_statistics/<user_id>', methods=['POST'])
-def retrieve_statistics(user_id):
+@app.route('/get_stats/<user_id>', methods=['POST'])
+def get_stats(user_id):
     results = {"word_stats": [], "daily_stats": []}
 
     connection = make_conn()
     with connection.cursor() as cursor:
         cursor.execute(
-            f"""SELECT session_id, paragraph_id, word_index, start_time FROM event WHERE user_id={user_id}"""
+            f"""SELECT user_id, session_id, word, duration, created_at FROM event WHERE user_id={user_id}"""
         )
         result = cursor.fetchall()
         sessions = pd.DataFrame(result)
         
-        # compute average time per (paragraph_id, word_index)
-        sessions.sort_values(['session_id', 'start_time'], inplace=True)
-        sessions['duration'] = sessions.groupby(['session_id'])['start_time'].transform(lambda x: (x.shift(-1) - x))
-        sessions['duration'] = sessions['duration'].map(lambda x: x.total_seconds())
-        sessions.dropna(inplace=True)
-        
         # compute daily statistics
-        sessions["date"] = sessions.start_time.map(lambda x: x.strftime("%Y-%m-%d"))
+        sessions["date"] = sessions.created_at.map(lambda x: x.strftime("%Y-%m-%d"))
         daily_stats = sessions.groupby("date")["duration"].mean().reset_index()
         daily_stats["word_count"] = list(sessions.groupby("date")["duration"].count())
         daily_stats.sort_values("date", inplace=True)
@@ -99,17 +92,12 @@ def retrieve_statistics(user_id):
             results["daily_stats"] += [[row["date"], row["duration"], row["word_count"]]]
 
         # compute word statistics
-        word_stats = sessions.groupby(["paragraph_id", "word_index"])["duration"].mean().reset_index()
+        word_stats = sessions.groupby(["word"])["duration"].mean().reset_index()
         word_stats = word_stats.sort_values("duration", ascending=False)
 
         if len(word_stats) == 0:
             return json.dumps(results)
         
-        word_stats = word_stats.head(200)
-        word_stats["word"] = word_stats.apply(lambda row: find_word(row["paragraph_id"], int(row["word_index"])), axis=1)
-        word_stats = word_stats.groupby("word")["duration"].mean().reset_index()
-        word_stats.sort_values("duration", inplace=True, ascending=False)
-
         for _, row in word_stats.head(20).iterrows():
             results["word_stats"] += [[row["word"], row["duration"]]]
     return json.dumps(results)
@@ -118,12 +106,13 @@ def retrieve_statistics(user_id):
 @app.route('/event/', methods=['POST'])
 def log_event():
     data = request.get_json()
-    user_id, session_id, paragraph_id, index = data["user_id"], data["session_id"], data["paragraph_id"], data["index"]
+    user_id, paragraph_id, session_id, word_index, word, duration, completed_at = \
+        data["user_id"], data["paragraph_id"], data["session_id"], data["word_index"], data["duration"], data["completed_at"]
 
     connection = make_conn()
     with connection.cursor() as cursor:
-        cursor.execute(f"INSERT INTO event (user_id, session_id, paragraph_id, word_index) "
-                       f"VALUES ({user_id}, \"{session_id}\", {paragraph_id}, {index})")
+        cursor.execute(f"INSERT INTO event (user_id, paragraph_id, session_id, word_index, word, duration, completed_at) "
+                       f"VALUES ({user_id}, \"{paragraph_id}\", {session_id}, {word_index}, \"{word}\", {completed_at})")
         connection.commit()
     return ""
 
@@ -131,12 +120,13 @@ def log_event():
 @app.route('/final_sent/', methods=['POST'])
 def log_final_sent():
     data = request.get_json()
-    user_id, session_id, paragraph_id, sentence = data["user_id"], data["session_id"], data["paragraph_id"], data["sentence"]
+    user_id, paragraph_id, session_id, sentence, completed_at = \
+        data["user_id"], data["paragraph_id"], data["session_id"], data["sentence"], data["completed_at"]
 
     connection = make_conn()
     with connection.cursor() as cursor:
-        cursor.execute(f"INSERT INTO final_sent (user_id, session_id, paragraph_id, sentence) "
-                       f"VALUES ({user_id}, \"{session_id}\", {paragraph_id}, \"{sentence}\")")
+        cursor.execute(f"INSERT INTO final_sent (user_id, session_id, paragraph_id, sentence, completed_at) "
+                       f"VALUES ({user_id}, \"{session_id}\", {paragraph_id}, \"{sentence}\", completed_at)")
         connection.commit()
     return ""
 
@@ -153,15 +143,28 @@ def create_user(username):
     return json.dumps({"user_id": user_id})
 
 
-@app.route('/retrieve_history/<user_id>/<paragraph_id>', methods=['POST'])
-def retrieve_history(user_id, paragraph_id):
+@app.route('/get_paragraph/<user_id>', methods=['POST'])
+def get_paragraph(user_id):
+    connection = make_conn()
+    with connection.cursor() as cursor:
+        cursor.execute(f"SELECT next_paragraph_id FROM user WHERE id={user_id}")
+        paragraph_id = cursor.fetchone()["next_paragraph_id"]
+
+        cursor.execute(f"SELECT * FROM paragraph WHERE id={paragraph_id};")
+        content = cursor.fetchone()["content"]
+        connection.commit()
+    return json.dumps({"paragraph_id": paragraph_id, "content": content})
+
+
+@app.route('/get_history/<user_id>/<paragraph_id>', methods=['POST'])
+def get_history(user_id, paragraph_id):
     sessions = []
 
     connection = make_conn()
     with connection.cursor() as cursor:
         cursor.execute(f'SELECT * FROM paragraph WHERE id={paragraph_id}')
         paragraph = cursor.fetchone()
-        length = len(paragraph["text"].split())
+        length = len(paragraph["content"].split())
         
         cursor.execute(
             f"""SELECT * FROM (
@@ -183,19 +186,7 @@ def retrieve_history(user_id, paragraph_id):
     return json.dumps(list(json.loads(sessions.transpose().to_json()).values()))
 
 
-@app.route('/retrieve_paragraph/<id>', methods=['POST'])
-def retrieve_paragraph(id):
-    text = ""
-
-    connection = make_conn()
-    with connection.cursor() as cursor:
-        cursor.execute(f"SELECT * FROM paragraph WHERE id={id};")
-        text = cursor.fetchone()["text"]
-        connection.commit()
-    return json.dumps({"paragraph": text})
-
-
-@app.route('/transcribe/<word>', methods=['POST'])
+@app.route('/transcribe/<word>', methods=['POST'])  
 def transcribe(word):
     response = requests.post(
         "https://www.phonetizer.com/phonetizer/default/call/jsonrpc?nocache=1605357656222",

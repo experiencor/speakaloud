@@ -29,12 +29,12 @@
 if (document.cookie !== "") {
     var user_id = document.cookie.split(" ")[1]
     google.charts.load('current', {'packages':['bar']});
-    google.charts.setOnLoadCallback(retrieveStatistics);
+    google.charts.setOnLoadCallback(getStats);
 }
 
-function retrieveStatistics() {
+function getStats() {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "retrieve_statistics/" + String(user_id), true);
+    xhr.open("POST", "get_stats/" + String(user_id), true);
     xhr.setRequestHeader("Content-Type", "application/json");
 
     xhr.onreadystatechange = function () {
