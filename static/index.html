@@ -59,22 +59,29 @@
     </div>
 </body>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript" src="js/main.js"></script>
 <script type="text/javascript">
+/*
+    get user_id
+    get paragraph_id
+    start it all
+*/
+
 // global variables
 var user_id = -1;
-var paragraph_id = 12;
-var session_id = generateRandomString(32);
+var paragraph_id = -1;
+var session_id = generateRandomString(16);
 
 var paragraph = "";
 var curr_paragraph_indx = 0;
-var curr_interim_indx = 0;
 var last_curr_paragraph_indx = -1; 
+var curr_interim_indx = 0;
 
 var ipa_span = document.getElementById('ipa_span')
 var word_span = document.getElementById('word_span')
 var interim_span = document.getElementById('interim_span') 
 
-var timeBegan = new Date();
+var stopWatch = new StopWatch();
 var started = setInterval(clockRunning, 10);
 
 // entry point to client-side logic
@@ -86,12 +93,12 @@ if (!('webkitSpeechRecognition' in window)) {
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    if (document.cookie === "") {
+    if (!document.cookie) {
         var user_name = generateRandomString(16)
         createUser(user_name)
     } else {
         user_id = document.cookie.split(" ")[1]
-        start()
+        getParagraph(user_id)
     }
 }
 
@@ -105,22 +112,37 @@ function createUser(user_name) {
             var jsonContent = JSON.parse(xhr.responseText);
             user_id = jsonContent["user_id"]
             document.cookie = user_name + " " + String(user_id)
-            start()
+            getParagraph(user_id)
         }
     }
     xhr.send();
 }
 
+function getParagraph(user_id){
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "get_paragraph/" + user_id, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            var jsonContent = JSON.parse(xhr.responseText);
+            paragraph_id = jsonContent["paragraph_id"]
+            start()
+        }
+    }
+    xhr.send();    
+}
+
 function start() {
     google.charts.load('current', {'packages':['bar']});
-    google.charts.setOnLoadCallback(draw_bar_chart);
-    retrieve_paragraph(paragraph_id)
+    google.charts.setOnLoadCallback(drawBarChart);
 
     recognition.onend = function() {
         recognition.start()
     }
 
     recognition.onresult = function(event) {
+        stopWatch.start();
         var final_transcript = '';
         var interim_transcript = '';
 
@@ -139,9 +161,18 @@ function start() {
             while (i < words.length) {
                 if ((curr_paragraph_indx < paragraph.length) && 
                     (norm(words[i].toLowerCase()) == norm(paragraph[curr_paragraph_indx]))) {
+                    [duration, completed_at] = stopWatch.getDuration();
+
+                    log_event(user_id, 
+                              paragraph_id, 
+                              session_id, 
+                              curr_paragraph_indx, 
+                              paragraph[curr_paragraph_indx], 
+                              duration, 
+                              completed_at);
+
                     curr_paragraph_indx += 1
                     curr_interim_indx = i
-                    log_event(user_id, session_id, paragraph_id, curr_paragraph_indx)
                 }
                 i += 1
             }
@@ -150,7 +181,8 @@ function start() {
         } else {
             curr_interim_indx = 0
             interim_span.innerHTML = ""
-            log_final_sent(user_id, session_id, paragraph_id, final_transcript)
+            completed_at = stopWatch.getTime()
+            log_final_sent(user_id, paragraph_id, session_id, final_transcript, completed_at)
         }
 
         if (curr_paragraph_indx > 0) {
@@ -179,6 +211,8 @@ function start() {
             reset();
             draw_bar_chart();
         }
+
+        stopWatch.stop()
     }
 
     recognition.start()    
@@ -199,16 +233,22 @@ function transcribe(word) {
     xhr.send();
 }
 
-function log_event(user_id, session_id, paragraph_id, index) {
+function log_event(user_id, paragraph_id, session_id, word_index, word, duration, completed_at) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "event/", true);
     xhr.setRequestHeader("Content-Type", "application/json");
 
-    var data = JSON.stringify({"user_id": user_id, "session_id": session_id, "paragraph_id": paragraph_id, "index": index})
+    var data = JSON.stringify({"user_id": user_id, 
+                               "paragraph_id": paragraph_id, 
+                               "session_id": session_id, 
+                               "word_index": word_index, 
+                               "word": word, 
+                               "duration": duration, 
+                               "completed_at": completed_at})
     xhr.send(data);
 }
 
-function log_final_sent(user_id, session_id, paragraph_id, sentence) {
+function log_final_sent(user_id, paragraph_id, session_id, sentence, completed_at) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "final_sent/", true);
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -233,8 +273,7 @@ function readit() {
 }
 
 function clockRunning(){
-    var currentTime = new Date()
-    , timeElapsed = new Date(currentTime - timeBegan)
+    var timeElapsed = new Date(stopWatch.getTime())
     , hour = timeElapsed.getUTCHours()
     , min = timeElapsed.getUTCMinutes()
     , sec = timeElapsed.getUTCSeconds()
@@ -250,8 +289,7 @@ function reset(){
     last_curr_paragraph_indx = -1
     curr_paragraph_indx = 0;
     transcribe(paragraph[curr_paragraph_indx])
-    session_id = generateRandomString(32);
-    log_event(user_id, session_id, paragraph_id, curr_paragraph_indx)
+    session_id = generateRandomString(16);
 
     html_content = "";
     for (var j = 0; j < paragraph.length; ++j) {
@@ -259,24 +297,8 @@ function reset(){
     }
     document.getElementById('paragraph').innerHTML = html_content
 
-    timeBegan = new Date();
+    stopWatch = StopWatch();
     started = setInterval(clockRunning, 10);  
-}
-
-function retrieve_paragraph() {  
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "retrieve_paragraph/" + String(paragraph_id), true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            var jsonContent = JSON.parse(xhr.responseText);
-            paragraph = jsonContent["paragraph"]
-            paragraph = paragraph.split(" ")
-            reset()
-        }
-    }
-    xhr.send();
 }
 
 function generateRandomString(length) {
@@ -289,9 +311,9 @@ function generateRandomString(length) {
     return result;
 }
 
-function draw_bar_chart() {
+function drawBarChart() {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "retrieve_history/" + String(user_id) + "/" + String(paragraph_id), true);
+    xhr.open("POST", "get_history/" + String(user_id) + "/" + String(paragraph_id), true);
     xhr.setRequestHeader("Content-Type", "application/json");
 
     xhr.onreadystatechange = function () {
