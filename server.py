@@ -202,4 +202,4 @@ if __name__ == "__main__":
     #app.run(host="0.0.0.0", debug=True)
     #app.run(host="0.0.0.0", port=80, debug=True)
     #app.run(host="0.0.0.0", ssl_context='adhoc')
-    app.run(host="0.0.0.0", port=443, debug=True, ssl_context=('certificate.crt', 'private.key',))
+    app.run(host="0.0.0.0", port=443, ssl_context=('certificate.crt', 'private.key',))
