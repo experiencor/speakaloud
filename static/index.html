@@ -55,14 +55,17 @@
         </div>
     </div>
     <div align="center" style="margin-top: 100px;">
+        <div align="center" style="width: 900px; height: 50px;"><span style="font-size: 24.0px; font-weight: bold;" >Duration</span></div>
         <div align="center" id="history" style="width: 900px; height: 500px;"></div>
     </div>
 </body>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
+google.charts.load('current', {'packages':['bar']});
+google.charts.setOnLoadCallback(draw_bar_chart);
 // global variables
 var user_id = -1;
-var paragraph_id = 14;
+var paragraph_id = 1;
 var session_id = generateRandomString(32);
 
 var paragraph = "";
@@ -112,8 +115,7 @@ function createUser(user_name) {
 }
 
 function start() {
-    google.charts.load('current', {'packages':['bar']});
-    google.charts.setOnLoadCallback(draw_bar_chart);
+ 
     retrieve_paragraph(paragraph_id)
 
     recognition.onend = function() {
@@ -178,6 +180,7 @@ function start() {
             speechSynthesis.speak(ut);
             reset();
             draw_bar_chart();
+
         }
     }
 
@@ -307,20 +310,17 @@ function draw_bar_chart() {
             var data = new google.visualization.arrayToDataTable(rows);
 
             var options = {
-                title: 'Chess opening moves',
                 width: 900,
                 legend: { position: 'none' },
                 bars: 'vertical', // Required for Material Bar Charts.
                 axes: {
-                    x: {
-                        0: { side: 'top', label: 'Duration'} // Top x-axis.
-                    }
+                    y:{0: {side:"left", label: "Seconds"}}
                 },
                 bar: { groupWidth: "90%" }
             };
 
             var chart = new google.charts.Bar(document.getElementById('history'));
-            chart.draw(data, options);
+            chart.draw(data, google.charts.Bar.convertOptions(options));
         }
     }
     xhr.send();
