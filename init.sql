@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS event (
     session_id VARCHAR(32)      NOT NULL,
     word_index INT              NOT NULL,
     word VARCHAR(32)            NOT NULL,
+    paragraph_length INT        NOT NULL,
     duration INT                NOT NULL,
     completed_at INT            NOT NULL,
     created_at TIMESTAMP(6)     DEFAULT CURRENT_TIMESTAMP(6)
@@ -16,8 +17,10 @@ CREATE TABLE IF NOT EXISTS final_sent (
     paragraph_id INT            NOT NULL,
     session_id VARCHAR(32)      NOT NULL,
     sentence VARCHAR(1024)      NOT NULL,
+    word_index INT              NOT NULL,
+    word VARCHAR(32)            NOT NULL,    
     started_at INT            	NOT NULL,
-    completed_at INT            NOT NULL,    
+    completed_at INT            NOT NULL,   
     created_at TIMESTAMP(6)     DEFAULT CURRENT_TIMESTAMP(6)
 );
 

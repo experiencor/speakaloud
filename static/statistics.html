@@ -53,6 +53,7 @@ function draw_hard_word(word_list) {
     rows = [["Word", "Average Time"]]
     for (var i = 0; i < word_list.length; ++i) {
         row = word_list[i]
+        row[1] = row[1]/1000
         rows.push(row)
     }
 
@@ -75,7 +76,7 @@ function draw_word_time(word_list) {
     rows = [["Date", "Time per Word"]]
     for (var i = 0; i < word_list.length; ++i) {
         row = word_list[i]
-        rows.push([row[0], row[1]])
+        rows.push([row[0], row[1]/1000])
     }
 
     var data = new google.visualization.arrayToDataTable(rows);
