@@ -19,21 +19,24 @@
         </div>
     </nav>
     <div align="center" style="margin-top: 100px;">
-        <div align="center" id="hard_word" style="width: 900px; height: 500px;"></div>
-        <div align="center" id="word_time" style="width: 900px; height: 500px;"></div>
-        <div align="center" id="word_count" style="width: 900px; height: 500px;"></div>
+        <div align="center" style="width: 900px; height: 50px;"><span style="font-size: 24.0px;font-weight: bold;" >Difficult Words</span></div>
+        <div align="center" id="hard_word" style="width: 900px; height: 500px; margin-bottom: 50px;"></div>
+        <div align="center" style="width: 900px; height: 50px;"><span style="font-size: 24.0px;font-weight: bold;">Speed</span></div>
+        <div align="center" id="word_time" style="width: 900px; height: 500px; margin-bottom: 50px;"></div>
+        <div align="center" style="width: 900px; height: 50px;"><span style="font-size: 24.0px;font-weight: bold">Word Count</span></div>
+        <div align="center" id="word_count" style="width: 900px; height: 500px;margin-bottom: 100px;"></div>
     </div>
 </body>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
-google.charts.load('current', {'packages':['bar']});
-
 if (document.cookie !== "") {
     var user_id = document.cookie.split(" ")[1]
-    retrieveStatistics(user_id)
+    google.charts.load('current', {'packages':['bar']});
+    google.charts.load('current', {'packages':['line']});
+    google.charts.setOnLoadCallback(retrieveStatistics);
 }
 
-function retrieveStatistics(user_id) {
+function retrieveStatistics() {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "retrieve_statistics/" + String(user_id), true);
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -62,14 +65,15 @@ function draw_hard_word(word_list) {
     var options = {
         width: 900,
         bars: 'horizontal', // Required for Material Bar Charts.
+        legend: { position: 'none' },
         axes: {
-            x: {0: {side: 'top'}} // Top x-axis.
+            x: {0: {side: 'bottom', label: "Average Time per Word"}}// Top x-axis.
         },
         bar: { groupWidth: "90%" }
     };
 
     var chart = new google.charts.Bar(document.getElementById('hard_word'));
-    chart.draw(data, options);
+    chart.draw(data, google.charts.Bar.convertOptions(options));
 }
 
 function draw_word_time(word_list) {
@@ -82,17 +86,17 @@ function draw_word_time(word_list) {
     var data = new google.visualization.arrayToDataTable(rows);
 
     var options = {
-        title: "Difficult Words",
+        legend: { position: 'none' },
         width: 900,
-        bars: 'vertical', // Required for Material Bar Charts.
         axes: {
-            x: {0: {side: 'top'}} // Top x-axis.
+            x: {0: {side: 'bottom', label: "Date"}},
+            y: {0: {side: 'left', label: "Average Time per Word"}}
         },
         bar: { groupWidth: "90%" }
     };
 
     var chart = new google.charts.Bar(document.getElementById('word_time'));
-    chart.draw(data, options);
+    chart.draw(data, google.charts.Bar.convertOptions(options));
 }
 
 function draw_word_count(word_list) {
@@ -105,17 +109,18 @@ function draw_word_count(word_list) {
     var data = new google.visualization.arrayToDataTable(rows);
 
     var options = {
-        title: "Difficult Words",
         width: 900,
+        legend: { position: 'none' },
         bars: 'vertical', // Required for Material Bar Charts.
         axes: {
-            x: {0: {side: 'top'}} // Top x-axis.
+            x: {0: {side: 'bottom'}}, // Top x-axis.
+            y: {0: {side: 'left', label: "Word"}} // Top x-axis.
         },
         bar: { groupWidth: "90%" }
     };
 
     var chart = new google.charts.Bar(document.getElementById('word_count'));
-    chart.draw(data, options);
+    chart.draw(data, google.charts.Bar.convertOptions(options));
 }
 </script>
 </html>
