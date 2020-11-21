@@ -164,7 +164,7 @@ def log_event():
         cursor.execute(f"INSERT INTO event (user_id, paragraph_id, session_id, word_index, word, paragraph_length, duration, completed_at) "
                        f"VALUES ({user_id}, {paragraph_id}, \"{session_id}\", {word_index}, \"{word}\", {paragraph_length}, {duration}, {completed_at})")
         connection.commit()
-    return ""
+    return "done"
 
 
 @app.route('/final_sent/', methods=['POST'])
@@ -178,7 +178,7 @@ def log_final_sent():
         cursor.execute(f"INSERT INTO final_sent (user_id, paragraph_id, session_id, sentence, word_index, word, started_at, completed_at) "
                        f"VALUES ({user_id}, {paragraph_id}, \"{session_id}\", \"{sentence}\", {word_index}, \"{word}\", {started_at}, {completed_at})")
         connection.commit()
-    return ""
+    return "done"
 
 
 @app.route('/transcribe/<word>', methods=['POST'])  
