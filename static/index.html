@@ -133,7 +133,7 @@ async function startItAll() {
 
     recognition.onresult = function(event) {
         if (!is_building_final_sent) {
-            if (document.hidden) {
+            if (!document.hasFocus()) {
                 return
             }
             is_building_final_sent = true
