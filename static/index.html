@@ -55,6 +55,9 @@
         </div>
     </div>
     <div align="center" style="margin-top: 100px;">
+    	<span style="font-size: 24px; font-weight:bold;" > Duration</span>
+    </div>
+    <div align="center">
         <div align="center" id="history" style="width: 900px; height: 500px;"></div>
     </div>
 </body>
@@ -96,9 +99,10 @@ async function startItAll() {
     results = await getParagraphForUser(user_id);
     paragraph_id = results["paragraph_id"]
     paragraph = results["content"].split(" ");
+    min_completion_time = results["min_completion_time"]
     session_id = generateRandomString(16);
 
-    google.charts.load('current', {'packages':['bar']});
+    google.charts.load('current', {'packages':['corechart']});
     google.charts.setOnLoadCallback(drawBarChart);
 
     reset();
@@ -358,30 +362,47 @@ function drawBarChart() {
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
             var jsonContent = JSON.parse(xhr.responseText);
-            
-            rows = [["Time", "Duration"]]
-            for (var i = 0; i < jsonContent.length; ++i) {
-                row = jsonContent[i]
-                rows.push([i, row["duration"]/1000])
-            }
+        rows = [[0, null,min_completion_time/1000]]
+        quater = []
+        for (var i = 0; i < jsonContent.length; ++i) {
+            row = jsonContent[i]
+            rows.push([i+1, row["duration"]/1000, min_completion_time/1000])
+            quater.push(i+1)
+        }
+        rows.push([i+0.5, null, min_completion_time/1000])
+        console.log(rows)
+		var data = new google.visualization.DataTable();
+		    data.addColumn('number', 'Time');
+		    data.addColumn('number', 'Duration');
+		    data.addColumn('number', 'min time');
+		    data.addRows(rows);
+		var options = {
+		 	isStacked: true,
+		 	legend: {
+		        position: 'none'
+		    },
+		    seriesType: 'bars',
+		    interpolateNulls: true,
 
-            var data = new google.visualization.arrayToDataTable(rows);
-
-            var options = {
-                title: 'Chess opening moves',
-                width: 900,
-                legend: { position: 'none' },
-                bars: 'vertical', // Required for Material Bar Charts.
-                axes: {
-                    x: {
-                        0: { side: 'top', label: 'Duration'} // Top x-axis.
-                    }
-                },
-                bar: { groupWidth: "90%" }
-            };
-
-            var chart = new google.charts.Bar(document.getElementById('history'));
-            chart.draw(data, options);
+		    series: {
+		       	1: {
+		        	type: 'line',
+		        	areaOpacity:0,
+		        	},
+		        },
+		        bar: { groupWidth: "120%" },
+		        hAxis: {
+		            format: 'Q#',
+		            ticks: [],
+		            viewWindow: {
+		                min: 0.5,
+		                max: i + 0.5
+		            }
+		        },
+		    }
+		console.log(data)   
+		    var chart = new google.visualization.ComboChart(document.getElementById('history'));
+		    chart.draw(data,options);
         }
     }
     xhr.send();
