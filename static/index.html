@@ -167,10 +167,18 @@ async function startItAll() {
 
                 curr_paragraph_indx += 1
                 curr_interim_indx = i
+
+                document.getElementById('paragraph').innerHTML = 
+                    "<strong>" + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</strong> " +
+                    paragraph.slice(curr_paragraph_indx).join(" ");
+
+                if (curr_paragraph_indx < paragraph.length) {
+                    transcribe(paragraph[curr_paragraph_indx])
+                }
             }
             i += 1
         }
-        interim_span.innerHTML = transcript
+        interim_span.innerHTML = words.slice(curr_interim_indx).join(" ")
 
         if (isFinal | (curr_paragraph_indx == paragraph.length)) {
             if (isFinal) {
@@ -183,35 +191,30 @@ async function startItAll() {
             if (curr_paragraph_indx == paragraph.length) {
                 const ut = new SpeechSynthesisUtterance('Well done!');
                 speechSynthesis.speak(ut);
-                logFinalSent(user_id, paragraph_id, session_id, transcript, curr_paragraph_indx, word, final_sent_started_at, completed_at, drawBarChart)
+                logFinalSent(user_id, 
+                             paragraph_id, 
+                             session_id, 
+                             transcript, 
+                             curr_paragraph_indx, 
+                             word, 
+                             final_sent_started_at, 
+                             completed_at, 
+                             drawBarChart)
                 reset();
             } else {
                 is_building_final_sent = false
                 word = paragraph[curr_paragraph_indx]
                 stopWatch.stop()
-                logFinalSent(user_id, paragraph_id, session_id, transcript, curr_paragraph_indx, word, final_sent_started_at, completed_at)
+                logFinalSent(user_id, 
+                             paragraph_id, 
+                             session_id, 
+                             transcript, 
+                             curr_paragraph_indx, 
+                             word, 
+                             final_sent_started_at, 
+                             completed_at)
             }
             
-        }
-
-        if (curr_paragraph_indx > 0) {
-            html_content = "<strong>"
-            for (var j = 0; j < paragraph.length; ++j) {
-                html_content += paragraph[j] + " "
-
-                if (j == curr_paragraph_indx-1) {
-                    html_content += "</strong>"    
-                } 
-            }
-            document.getElementById('paragraph').innerHTML = html_content
-        }
-
-        if (curr_paragraph_indx !== last_curr_paragraph_indx) {
-            last_curr_paragraph_indx = curr_paragraph_indx
-
-            if (curr_paragraph_indx < paragraph.length) {
-                transcribe(paragraph[curr_paragraph_indx])
-            }
         }
     }
 
@@ -347,6 +350,7 @@ function reset(){
     session_id = generateRandomString(16);
 
     document.getElementById('paragraph').innerHTML = paragraph.join(" ")
+    transcribe(paragraph[0])
 
     stopWatch = new StopWatch();
     started = setInterval(clockRunning, 100);  
