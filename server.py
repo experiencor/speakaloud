@@ -140,7 +140,10 @@ def get_stats(user_id):
             word_sessions = words.groupby("session_id")["completed_at"].max().reset_index()
             final_sent_words = final_sent_words.merge(word_sessions, on="session_id", how="left")
             final_sent_words.completed_at_y.fillna(0, inplace=True)
-            final_sent_words["duration"] = final_sent_words.completed_at_x - final_sent_words.completed_at_y
+            final_sent_words = final_sent_words[final_sent_words.completed_at_x > \
+                                                final_sent_words.completed_at_y]
+            final_sent_words["duration"] = final_sent_words.completed_at_x - \
+                                           final_sent_words.completed_at_y
             combined_words = pd.concat([words[["word", "duration"]], 
                                         final_sent_words[["word", "duration"]]])
         combined_words["word"] = combined_words.word.map(normalize)

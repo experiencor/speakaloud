@@ -180,18 +180,18 @@ async function startItAll() {
 
             completed_at = stopWatch.getTime()
             var word = "";
-            var callback = null
             if (curr_paragraph_indx == paragraph.length) {
                 const ut = new SpeechSynthesisUtterance('Well done!');
                 speechSynthesis.speak(ut);
+                logFinalSent(user_id, paragraph_id, session_id, transcript, curr_paragraph_indx, word, final_sent_started_at, completed_at, drawBarChart)
                 reset();
-                callback = drawBarChart
             } else {
                 is_building_final_sent = false
                 word = paragraph[curr_paragraph_indx]
                 stopWatch.stop()
+                logFinalSent(user_id, paragraph_id, session_id, transcript, curr_paragraph_indx, word, final_sent_started_at, completed_at)
             }
-            logFinalSent(user_id, paragraph_id, session_id, transcript, curr_paragraph_indx, word, final_sent_started_at, completed_at, callback)
+            
         }
 
         if (curr_paragraph_indx > 0) {
