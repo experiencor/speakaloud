@@ -54,7 +54,7 @@
             </div>
         </div>
     </div>
-    <div align="center" style="margin-top: 100px;">
+    <div align="center" style="margin-top: 10px;">
         <div align="center" id="history" style="width: 900px; height: 500px;"></div>
     </div>
 </body>
@@ -385,11 +385,15 @@ function drawBarChart() {
                 rows.push([String(i+1), row["duration"]/1000, min_completion_time/1000])
             }
 
-            var data = new google.visualization.arrayToDataTable(rows);
+            while (rows.length < 10) {
+                rows.push([" ", null, null])
+            }
 
+            var data = new google.visualization.arrayToDataTable(rows);
             var options = {
                 title: 'Lịch Sử Luyện Tập',
                 seriesType: 'bars',
+                legend: {position: "none"},
                 series: {
                     0: {
                         type: "bar"
@@ -399,6 +403,7 @@ function drawBarChart() {
                         lineDashStyle: [3, 4]
                     },
                 },
+                theme: "material",
                 vAxis: {
                     viewWindow: {
                         min: 0
