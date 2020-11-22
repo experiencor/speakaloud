@@ -146,6 +146,10 @@ def get_stats(user_id):
                                            final_sent_words.completed_at_y
             combined_words = pd.concat([words[["word", "duration"]], 
                                         final_sent_words[["word", "duration"]]])
+
+        if len(combined_words) == 0:
+            return json.dumps(results)
+            
         combined_words["word"] = combined_words.word.map(normalize)
         word_stats = combined_words.groupby("word")["duration"].mean().reset_index()
         word_stats = word_stats.sort_values("duration", ascending=False)
