@@ -59,23 +59,25 @@
     </div>
 </body>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript" src="js/main.js"></script>
 <script type="text/javascript">
 // global variables
 var user_id = -1;
-var paragraph_id = 12;
-var session_id = generateRandomString(32);
-
+var paragraph_id = -1;
+var session_id = "";
 var paragraph = "";
 var curr_paragraph_indx = 0;
-var curr_interim_indx = 0;
 var last_curr_paragraph_indx = -1; 
+var curr_interim_indx = 0;
 
 var ipa_span = document.getElementById('ipa_span')
 var word_span = document.getElementById('word_span')
 var interim_span = document.getElementById('interim_span') 
 
-var timeBegan = new Date();
+var stopWatch = new StopWatch();
 var started = setInterval(clockRunning, 10);
+var final_sent_started_at = 0
+var is_building_final_sent = false
 
 // entry point to client-side logic
 if (!('webkitSpeechRecognition' in window)) {
@@ -86,102 +88,175 @@ if (!('webkitSpeechRecognition' in window)) {
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    if (document.cookie === "") {
-        var user_name = generateRandomString(16)
-        createUser(user_name)
-    } else {
-        user_id = document.cookie.split(" ")[1]
-        start()
-    }
+    startItAll()
 }
 
-function createUser(user_name) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "create_user/" + user_name, true);
-    xhr.setRequestHeader("Content-Type", "application/json");
+async function startItAll() {
+    user_id = await getUser();
+    results = await getParagraphForUser(user_id);
+    paragraph_id = results["paragraph_id"]
+    paragraph = results["content"].split(" ");
+    session_id = generateRandomString(16);
 
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            var jsonContent = JSON.parse(xhr.responseText);
-            user_id = jsonContent["user_id"]
-            document.cookie = user_name + " " + String(user_id)
-            start()
-        }
-    }
-    xhr.send();
-}
-
-function start() {
     google.charts.load('current', {'packages':['bar']});
-    google.charts.setOnLoadCallback(draw_bar_chart);
-    retrieve_paragraph(paragraph_id)
+    google.charts.setOnLoadCallback(drawBarChart);
+
+    reset();
+
+    /*recognition.onaudiostart = function() {
+        console.log("onaudiostart")
+    }
+
+    recognition.onaudioend = function() {
+        console.log("onaudioend")
+    }
+
+    recognition.onspeechstart = function() {
+        console.log("onspeechstart")
+    }
+
+    recognition.onspeechend = function() {
+        console.log("onspeechend")
+    }
+
+    recognition.onsoundstart = function() {
+        console.log("onsoundstart")
+    }
+
+    recognition.onsoundend = function() {
+        console.log("onsoundend")
+    }*/
 
     recognition.onend = function() {
         recognition.start()
     }
 
     recognition.onresult = function(event) {
-        var final_transcript = '';
-        var interim_transcript = '';
+        console.log(is_building_final_sent)
+        if (!is_building_final_sent) {
+            if (!document.hasFocus()) {
+                return
+            }
+            is_building_final_sent = true
+            final_sent_started_at = stopWatch.getTime()
+            stopWatch.start();
+        }
 
+        transcript = ""
+        isFinal = false
         for (var i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                final_transcript += event.results[i][0].transcript;
-            } else {
-                interim_transcript += event.results[i][0].transcript;
-            }
+            isFinal |= event.results[i].isFinal;
+            transcript += event.results[i][0].transcript;
         }
+        
+        words = transcript.trim().split(" ")
+        i = curr_interim_indx
+        while (i < words.length) {
+            if ((curr_paragraph_indx < paragraph.length) && 
+                (norm(words[i].toLowerCase()) == norm(paragraph[curr_paragraph_indx]))) {
+                [duration, completed_at] = stopWatch.getDuration();
 
-        if (final_transcript === "") {
-            words = interim_transcript.trim().split(" ")
+                logEvent(user_id, 
+                         paragraph_id, 
+                         session_id, 
+                         curr_paragraph_indx, 
+                         paragraph[curr_paragraph_indx], 
+                         paragraph.length, 
+                         duration, 
+                         completed_at);
 
-            i = curr_interim_indx
-            while (i < words.length) {
-                if ((curr_paragraph_indx < paragraph.length) && 
-                    (norm(words[i].toLowerCase()) == norm(paragraph[curr_paragraph_indx]))) {
-                    curr_paragraph_indx += 1
-                    curr_interim_indx = i
-                    log_event(user_id, session_id, paragraph_id, curr_paragraph_indx)
+                curr_paragraph_indx += 1
+                curr_interim_indx = i
+
+                document.getElementById('paragraph').innerHTML = 
+                    "<strong>" + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</strong> " +
+                    paragraph.slice(curr_paragraph_indx).join(" ");
+
+                if (curr_paragraph_indx < paragraph.length) {
+                    transcribe(paragraph[curr_paragraph_indx])
                 }
-                i += 1
+            }
+            i += 1
+        }
+        interim_span.innerHTML = words.slice(curr_interim_indx).join(" ")
+
+        if (isFinal | (curr_paragraph_indx == paragraph.length)) {
+            if (isFinal) {
+                curr_interim_indx = 0
+                interim_span.innerHTML = ""
             }
 
-            interim_span.innerHTML = interim_transcript
-        } else {
-            curr_interim_indx = 0
-            interim_span.innerHTML = ""
-            log_final_sent(user_id, session_id, paragraph_id, final_transcript)
-        }
-
-        if (curr_paragraph_indx > 0) {
-            html_content = "<strong>"
-            for (var j = 0; j < paragraph.length; ++j) {
-                html_content += paragraph[j] + " "
-
-                if (j == curr_paragraph_indx-1) {
-                    html_content += "</strong>"    
-                } 
+            completed_at = stopWatch.getTime()
+            var word = "";
+            if (curr_paragraph_indx == paragraph.length) {
+                const ut = new SpeechSynthesisUtterance('Well done!');
+                speechSynthesis.speak(ut);
+                logFinalSent(user_id, 
+                             paragraph_id, 
+                             session_id, 
+                             transcript, 
+                             curr_paragraph_indx, 
+                             word, 
+                             final_sent_started_at, 
+                             completed_at, 
+                             drawBarChart)
+                reset();
+            } else {
+                is_building_final_sent = false
+                word = paragraph[curr_paragraph_indx]
+                stopWatch.stop()
+                logFinalSent(user_id, 
+                             paragraph_id, 
+                             session_id, 
+                             transcript, 
+                             curr_paragraph_indx, 
+                             word, 
+                             final_sent_started_at, 
+                             completed_at)
             }
-            document.getElementById('paragraph').innerHTML = html_content
-        }
-
-        if (curr_paragraph_indx !== last_curr_paragraph_indx) {
-            last_curr_paragraph_indx = curr_paragraph_indx
-
-            if (curr_paragraph_indx < paragraph.length) {
-                transcribe(paragraph[curr_paragraph_indx])
-            }
-        }
-
-        if (curr_paragraph_indx == paragraph.length) {
-            const ut = new SpeechSynthesisUtterance('Well done!');
-            speechSynthesis.speak(ut);
-            reset();
-            draw_bar_chart();
+            
         }
     }
 
     recognition.start()    
+}
+
+function getUser() {
+    return new Promise(function (resolve, reject) {
+        if (!document.cookie) {
+            var userName = generateRandomString(16)
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "create_user/" + userName, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var jsonContent = JSON.parse(xhr.responseText);            
+                    document.cookie = userName + " " + jsonContent["user_id"]
+                    resolve(jsonContent["user_id"])
+                }
+            }
+            xhr.send();
+        } else {
+            resolve(document.cookie.split(" ")[1])
+        }
+    });
+}
+
+function getParagraphForUser(user_id) {
+    return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "get_paragraph_for_user/" + user_id, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                var jsonContent = JSON.parse(xhr.responseText);
+                resolve(jsonContent)
+            }
+        }
+        xhr.send();   
+    }) 
 }
 
 function transcribe(word) {
@@ -199,21 +274,43 @@ function transcribe(word) {
     xhr.send();
 }
 
-function log_event(user_id, session_id, paragraph_id, index) {
+function logEvent(user_id, paragraph_id, session_id, word_index, word, paragraph_length, duration, completed_at) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "event/", true);
     xhr.setRequestHeader("Content-Type", "application/json");
 
-    var data = JSON.stringify({"user_id": user_id, "session_id": session_id, "paragraph_id": paragraph_id, "index": index})
+    var data = JSON.stringify({"user_id": user_id, 
+                               "paragraph_id": paragraph_id, 
+                               "session_id": session_id, 
+                               "word_index": word_index, 
+                               "word": word, 
+                               "paragraph_length": paragraph_length,
+                               "duration": duration, 
+                               "completed_at": completed_at})
     xhr.send(data);
 }
 
-function log_final_sent(user_id, session_id, paragraph_id, sentence) {
+function logFinalSent(user_id, paragraph_id, session_id, sentence, word_index, word, started_at, completed_at, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "final_sent/", true);
     xhr.setRequestHeader("Content-Type", "application/json");
 
-    var data = JSON.stringify({"user_id": user_id, "session_id": session_id, "paragraph_id": paragraph_id, "sentence": sentence})
+    var data = JSON.stringify({"user_id": user_id, 
+                               "session_id": session_id, 
+                               "paragraph_id": paragraph_id, 
+                               "sentence": sentence, 
+                               "word_index": word_index, 
+                               "word": word, 
+                               "started_at": started_at,
+                               "completed_at": completed_at})
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            if (callback) {
+                console.log("asfasdfsadf")
+               callback()
+            }
+        }
+    }
     xhr.send(data);
 }
 
@@ -233,9 +330,8 @@ function readit() {
 }
 
 function clockRunning(){
-    var currentTime = new Date()
-    , timeElapsed = new Date(currentTime - timeBegan)
-    , hour = timeElapsed.getUTCHours()
+    var timeElapsed = new Date(stopWatch.getTime())
+    var hour = timeElapsed.getUTCHours()
     , min = timeElapsed.getUTCMinutes()
     , sec = timeElapsed.getUTCSeconds()
     , ms = timeElapsed.getUTCMilliseconds();
@@ -247,51 +343,30 @@ function clockRunning(){
 };
 
 function reset(){
+    is_building_final_sent = false
     last_curr_paragraph_indx = -1
     curr_paragraph_indx = 0;
     transcribe(paragraph[curr_paragraph_indx])
-    session_id = generateRandomString(32);
-    log_event(user_id, session_id, paragraph_id, curr_paragraph_indx)
+    session_id = generateRandomString(16);
 
-    html_content = "";
-    for (var j = 0; j < paragraph.length; ++j) {
-        html_content += paragraph[j] + " "
-    }
-    document.getElementById('paragraph').innerHTML = html_content
+    document.getElementById('paragraph').innerHTML = paragraph.join(" ")
+    transcribe(paragraph[0])
 
-    timeBegan = new Date();
-    started = setInterval(clockRunning, 10);  
-}
-
-function retrieve_paragraph() {  
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "retrieve_paragraph/" + String(paragraph_id), true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            var jsonContent = JSON.parse(xhr.responseText);
-            paragraph = jsonContent["paragraph"]
-            paragraph = paragraph.split(" ")
-            reset()
-        }
-    }
-    xhr.send();
+    stopWatch = new StopWatch();
+    started = setInterval(clockRunning, 100);  
 }
 
 function generateRandomString(length) {
-    var result           = '';
-    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var charactersLength = characters.length;
-    for ( var i = 0; i < length; i++ ) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    var result = Date.now().toString(36)
+    for ( var i = 0; i < 8; i++ ) {
+        result += Math.floor(Math.random() * 36).toString(36)
     }
     return result;
 }
 
-function draw_bar_chart() {
+function drawBarChart() {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "retrieve_history/" + String(user_id) + "/" + String(paragraph_id), true);
+    xhr.open("POST", "get_history/" + String(user_id) + "/" + String(paragraph_id), true);
     xhr.setRequestHeader("Content-Type", "application/json");
 
     xhr.onreadystatechange = function () {
@@ -301,7 +376,7 @@ function draw_bar_chart() {
             rows = [["Time", "Duration"]]
             for (var i = 0; i < jsonContent.length; ++i) {
                 row = jsonContent[i]
-                rows.push([i, row["duration"]])
+                rows.push([i, row["duration"]/1000])
             }
 
             var data = new google.visualization.arrayToDataTable(rows);
