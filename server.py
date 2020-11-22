@@ -73,8 +73,11 @@ def get_paragraph_for_user(user_id):
 
         cursor.execute(f"SELECT * FROM paragraph WHERE id={paragraph_id} LIMIT 1;")
         content = cursor.fetchone()["content"]
+
+        cursor.execute(f"SELECT min(completed_at) FROM event WHERE paragraph_id = 1 AND word_index = paragraph_length - 1 LIMIT 100;")
+        min_completion_time = cursor.fetchone()['min(completed_at)']
         connection.commit()
-    return json.dumps({"paragraph_id": paragraph_id, "content": content})
+    return json.dumps({"paragraph_id": paragraph_id, "content": content, "min_completion_time": min_completion_time}, )
 
 
 @app.route('/get_history/<user_id>/<paragraph_id>', methods=['POST'])
@@ -197,4 +200,4 @@ if __name__ == "__main__":
     #app.run(host="0.0.0.0", debug=True)
     #app.run(host="0.0.0.0", port=5000, debug=True)
     #app.run(host="0.0.0.0", ssl_context='adhoc')
-    app.run(host="0.0.0.0", port=443, ssl_context=('certificate.crt', 'private.key',))
+    app.run(host="0.0.0.0", port=443, ssl_context=('certificate.crt', 'private.key',), debug=True)
