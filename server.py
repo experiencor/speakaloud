@@ -73,8 +73,18 @@ def get_paragraph_for_user(user_id):
 
         cursor.execute(f"SELECT * FROM paragraph WHERE id={paragraph_id} LIMIT 1;")
         content = cursor.fetchone()["content"]
+
+        cursor.execute(f"""SELECT min(completed_at) as min_completion_time FROM event WHERE 
+                           paragraph_id={paragraph_id} AND word_index=(paragraph_length-1) LIMIT 1;""")
+        result = cursor.fetchone()
+
+        if len(result) == 0:
+            min_completion_time = 0
+        else:
+            min_completion_time = result['min_completion_time']
+
         connection.commit()
-    return json.dumps({"paragraph_id": paragraph_id, "content": content})
+    return json.dumps({"paragraph_id": paragraph_id, "content": content, "min_completion_time": min_completion_time})
 
 
 @app.route('/get_history/<user_id>/<paragraph_id>', methods=['POST'])

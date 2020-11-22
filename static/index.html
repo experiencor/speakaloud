@@ -6,11 +6,11 @@
     <nav class="slidemenu">
         <!-- Item 1 -->
         <input type="radio" name="slideItem" id="slide-item-1" class="slide-toggle" checked/>
-        <label for="slide-item-1"><span onclick="window.location.href='gymnastics';">Gymnastics</span></label>
+        <label for="slide-item-1"><span onclick="window.location.href='gymnastics';">Luyện Tập</span></label>
 
         <!-- Item 2 -->
         <input type="radio" name="slideItem" id="slide-item-2" class="slide-toggle"/>
-        <label for="slide-item-2"><span onclick="window.location.href='statistics';">Statistics</span></label>
+        <label for="slide-item-2"><span onclick="window.location.href='statistics';">Thống Kê</span></label>
 
         <div class="clear"></div>
         <!-- Bar -->
@@ -96,9 +96,10 @@ async function startItAll() {
     results = await getParagraphForUser(user_id);
     paragraph_id = results["paragraph_id"]
     paragraph = results["content"].split(" ");
+    min_completion_time = results["min_completion_time"]
     session_id = generateRandomString(16);
 
-    google.charts.load('current', {'packages':['bar']});
+    google.charts.load('current', {'packages':['corechart']});
     google.charts.setOnLoadCallback(drawBarChart);
 
     reset();
@@ -372,30 +373,41 @@ function drawBarChart() {
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
             var jsonContent = JSON.parse(xhr.responseText);
+            console.log(jsonContent)
+
+            if (jsonContent.length == 0) {
+                return
+            }
             
-            rows = [["Time", "Duration"]]
+            rows = [['Time', 'Duration', 'Record Time']]
             for (var i = 0; i < jsonContent.length; ++i) {
                 row = jsonContent[i]
-                rows.push([i, row["duration"]/1000])
+                rows.push([String(i+1), row["duration"]/1000, min_completion_time/1000])
             }
 
             var data = new google.visualization.arrayToDataTable(rows);
 
             var options = {
-                title: 'Chess opening moves',
-                width: 900,
-                legend: { position: 'none' },
-                bars: 'vertical', // Required for Material Bar Charts.
-                axes: {
-                    x: {
-                        0: { side: 'top', label: 'Duration'} // Top x-axis.
-                    }
+                title: 'Lịch Sử Luyện Tập',
+                seriesType: 'bars',
+                series: {
+                    0: {
+                        type: "bar"
+                    },
+                    1: {
+                        type: 'line',
+                        lineDashStyle: [3, 4]
+                    },
                 },
-                bar: { groupWidth: "90%" }
-            };
+                vAxis: {
+                    viewWindow: {
+                        min: 0
+                    }
+                }
+            }
 
-            var chart = new google.charts.Bar(document.getElementById('history'));
-            chart.draw(data, options);
+            var chart = new google.visualization.ComboChart(document.getElementById('history'));
+            chart.draw(data,options);
         }
     }
     xhr.send();
