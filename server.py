@@ -37,7 +37,7 @@ def make_conn():
 def normalize(word):
     if word in ["I", "I'm"]:
         return word
-    return word.lower()
+    return regex.sub("[,\.!]", "", word).lower()
 
 
 # api functions
