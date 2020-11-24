@@ -12,6 +12,10 @@
         <input type="radio" name="slideItem" id="slide-item-2" class="slide-toggle" checked/>
         <label for="slide-item-2"><span onclick="window.location.href='statistics';">Thống Kê</span></label>
 
+        <!-- Item 3 -->
+        <input type="radio" name="slideItem" id="slide-item-2" class="slide-toggle"/>
+        <label for="slide-item-2"><span onclick="login()">Đăng Nhập</span></label>
+
         <div class="clear"></div>
         <!-- Bar -->
         <div class="slider">
@@ -29,9 +33,11 @@
     </div>
 </body>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript" src="js/main.js"></script>
 <script type="text/javascript">
-if (document.cookie !== "") {
-    var user_id = document.cookie.split(" ")[1]
+var user_id = getCookie("user_id")
+
+if (user_id != null) {
     google.charts.load('current', {'packages':['corechart', 'bar']});
     google.charts.setOnLoadCallback(getStats);
 }
@@ -44,7 +50,6 @@ function getStats() {
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
             var jsonContent = JSON.parse(xhr.responseText);
-            console.log(jsonContent)
             draw_hard_word(jsonContent["word_stats"])
             draw_word_time(jsonContent["daily_stats"])
             draw_word_count(jsonContent["daily_stats"])
@@ -87,6 +92,7 @@ function draw_word_time(word_list) {
     while (rows.length < 10) {
         rows.push([" ", 0])
     }
+    console.log(rows)
 
     var data = new google.visualization.arrayToDataTable(rows);
 
@@ -131,6 +137,19 @@ function draw_word_count(word_list) {
 
     var chart = new google.visualization.ColumnChart(document.getElementById('word_count'));
     chart.draw(data, options);
+}
+
+async function login() {
+    user_name = "";
+    person = prompt("Please enter your name:", "");
+    if ((person !== null) & (person !== "")) {
+        user_name = person;
+        setCookie("user_name", user_name, 14)
+
+        user_id = await getUser(user_name)
+        setCookie("user_id", user_id, 14)
+        getStats()
+    }
 }
 </script>
 </html>

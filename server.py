@@ -5,8 +5,10 @@ import requests
 import json
 import logging
 from bs4 import BeautifulSoup
+import numpy as np
 import pymysql.cursors
 import datetime
+import time
 import regex
 import pandas as pd
 from dateutil import parser
@@ -40,6 +42,12 @@ def normalize(word):
     return regex.sub("[,\.!]", "", word).lower()
 
 
+def generate_random_string(length):
+    res = np.base_repr(int(time.time() * 1000), 36)
+    res += "".join([np.base_repr(np.random.randint(0,36), 36) for _ in range(length-8)])
+    return res
+
+
 # api functions
 @app.route('/')
 @app.route('/gymnastics')
@@ -58,6 +66,13 @@ def statistics():
 def create_user(username):
     connection = make_conn()
     with connection.cursor() as cursor:
+        cursor.execute(f"SELECT id FROM user WHERE username=\'{username}\' LIMIT 1;")
+        result = cursor.fetchone()
+        if result:
+            return json.dumps({"user_id": result["id"]})
+        connection.commit()
+    
+    with connection.cursor() as cursor:
         cursor.execute(f"INSERT INTO user (username) VALUES (\"{username}\")")
         user_id = cursor.lastrowid
         connection.commit()
@@ -66,6 +81,7 @@ def create_user(username):
 
 @app.route('/get_paragraph_for_user/<user_id>', methods=['POST'])
 def get_paragraph_for_user(user_id):
+    user_id = int(user_id)
     connection = make_conn()
     with connection.cursor() as cursor:
         cursor.execute(f"SELECT next_paragraph_id FROM user WHERE id={user_id} LIMIT 1;")

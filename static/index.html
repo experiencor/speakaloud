@@ -12,6 +12,10 @@
         <input type="radio" name="slideItem" id="slide-item-2" class="slide-toggle"/>
         <label for="slide-item-2"><span onclick="window.location.href='statistics';">Thống Kê</span></label>
 
+        <!-- Item 3 -->
+        <input type="radio" name="slideItem" id="slide-item-3" class="slide-toggle"/>
+        <label for="slide-item-3"><span onclick="login()">Đăng Nhập</span></label>
+
         <div class="clear"></div>
         <!-- Bar -->
         <div class="slider">
@@ -62,12 +66,12 @@
 <script type="text/javascript" src="js/main.js"></script>
 <script type="text/javascript">
 // global variables
-var user_id = -1;
-var paragraph_id = -1;
-var session_id = "";
-var paragraph = "";
+var user_name = getCookie("user_name");
+var user_id = null;
+var paragraph_id = null;
+var session_id = null;
+var paragraph = [];
 var curr_paragraph_indx = 0;
-var last_curr_paragraph_indx = -1; 
 var curr_interim_indx = 0;
 
 var ipa_span = document.getElementById('ipa_span')
@@ -75,7 +79,7 @@ var word_span = document.getElementById('word_span')
 var interim_span = document.getElementById('interim_span') 
 
 var stopWatch = new StopWatch();
-var started = setInterval(clockRunning, 10);
+var started = setInterval(clockRunning, 500);
 var final_sent_started_at = 0
 var is_building_final_sent = false
 
@@ -84,6 +88,7 @@ if (!('webkitSpeechRecognition' in window)) {
     upgrade();
 } else {
     var recognition = new window.webkitSpeechRecognition;
+    var recognizing = false;
     recognition.lang = "en-US"
     recognition.continuous = true;
     recognition.interimResults = true;
@@ -92,17 +97,35 @@ if (!('webkitSpeechRecognition' in window)) {
 }
 
 async function startItAll() {
-    user_id = await getUser();
+    while (user_name === null | user_name === "") {
+        user_name = prompt("Please enter your name:", "");
+    }
+    setCookie("user_name", user_name, 14)
+
+    user_id = await getUser(user_name);
+    setCookie("user_id", user_id);
+
     results = await getParagraphForUser(user_id);
     paragraph_id = results["paragraph_id"]
     paragraph = results["content"].split(" ");
     min_completion_time = results["min_completion_time"]
-    session_id = generateRandomString(16);
+
+    reset();
 
     google.charts.load('current', {'packages':['corechart']});
     google.charts.setOnLoadCallback(drawBarChart);
 
-    reset();
+    recognition.onstart = function () {
+        recognizing = true;
+    };
+
+    recognition.onend = function () {
+        recognizing = false;
+    };
+
+    recognition.onerror = function (event) {
+        recognizing = false;
+    };
 
     /*recognition.onaudiostart = function() {
         console.log("onaudiostart")
@@ -133,7 +156,6 @@ async function startItAll() {
     }
 
     recognition.onresult = function(event) {
-        console.log(is_building_final_sent)
         if (!is_building_final_sent) {
             if (!document.hasFocus()) {
                 return
@@ -219,45 +241,9 @@ async function startItAll() {
         }
     }
 
-    recognition.start()    
-}
-
-function getUser() {
-    return new Promise(function (resolve, reject) {
-        if (!document.cookie) {
-            var userName = generateRandomString(16)
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "create_user/" + userName, true);
-            xhr.setRequestHeader("Content-Type", "application/json");
-
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    var jsonContent = JSON.parse(xhr.responseText);            
-                    document.cookie = userName + " " + jsonContent["user_id"]
-                    resolve(jsonContent["user_id"])
-                }
-            }
-            xhr.send();
-        } else {
-            resolve(document.cookie.split(" ")[1])
-        }
-    });
-}
-
-function getParagraphForUser(user_id) {
-    return new Promise(function (resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", "get_paragraph_for_user/" + user_id, true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-                var jsonContent = JSON.parse(xhr.responseText);
-                resolve(jsonContent)
-            }
-        }
-        xhr.send();   
-    }) 
+    if (!recognizing) {
+        recognition.start()
+    }    
 }
 
 function transcribe(word) {
@@ -345,7 +331,6 @@ function clockRunning(){
 
 function reset(){
     is_building_final_sent = false
-    last_curr_paragraph_indx = -1
     curr_paragraph_indx = 0;
     transcribe(paragraph[curr_paragraph_indx])
     session_id = generateRandomString(16);
@@ -373,9 +358,9 @@ function drawBarChart() {
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
             var jsonContent = JSON.parse(xhr.responseText);
-            console.log(jsonContent)
 
             if (jsonContent.length == 0) {
+                document.getElementById('history').innerHTML = ""
                 return
             }
             
@@ -429,5 +414,15 @@ document.addEventListener("keypress", function(e) {
         reset();
     }
 });
+
+function login() {
+    user_name = "";
+    person = prompt("Please enter your name:", "");
+    if ((person !== null) & (person !== "")) {
+        user_name = person;
+        setCookie("user_name", user_name, 14)
+        startItAll()
+    }
+}
 </script>
 </html>

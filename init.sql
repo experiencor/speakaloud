@@ -59,5 +59,8 @@ INSERT INTO paragraph (content) VALUES ("Yes I can. I learnt at school when I wa
 INSERT INTO paragraph (content) VALUES ("Yes, there are a few public swimming pools. There is the main indoor one at a big sports complex in the center of town. There are also a couple of outdoor ones, but you can only use them in summer as it is too cold in winter. One is a big one in a park, the other is a much smaller one.");
 INSERT INTO paragraph (content) VALUES ("Of course, I think it's very important. Firstly, you spend much of your life on holiday by water, for example, when you go to the beach on holiday, so you won't be able to enjoy yourself with your friends if you can't swim. Also, for safety reasons it's very important. You often hear about sad accidents involving young children so it's very important.");
 INSERT INTO paragraph (content) VALUES ("Although technology is a good thing, everything has two sides. Technology also has two sides one is good and the other is bad. Here are some negative aspects of technology that we are going to discuss.");
+INSERT INTO paragraph (content) VALUES ("I asked God for a bike, but I know God doesn’t work that way. So I stole a bike and asked for forgiveness.");
+INSERT INTO paragraph (content) VALUES ("Light travels faster than sound. This is why some people appear bright until you hear them speak.");
+INSERT INTO paragraph (content) VALUES ("Do not argue with an idiot. He will drag you down to his level and beat you with experience.");
 
 INSERT INTO user (age, next_paragraph_id, country) VALUES (24, 1, "vietnam");
