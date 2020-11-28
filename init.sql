@@ -69,4 +69,6 @@ INSERT INTO paragraph (content) VALUES ("Give a man a fish and you feed him for 
 INSERT INTO paragraph (content) VALUES ("A positive attitude may not solve all your problems. But it will annoy enough people to make it worth the effort.");
 INSERT INTO paragraph (content) VALUES ("Today a man knocked on my door and asked for a small donation toward the local swimming pool. I gave him a glass of water.");
 
+INSERT INTO paragraph (content) VALUES ("Nevertheless, there are drawbacks to such a solution. First and foremost, this would be a heavy burden on the car drivers. At present, taxes are already high for a lot of people, and so further taxes would only mean less money at the end of the month for most people who may have no choice but to drive every day. In addition, this type of tax would likely be set at a fixed amount. This would mean that it would hit those with less money harder, whilst the rich could likely afford it. It is therefore not a fair tax.");
+
 INSERT INTO user (age, next_paragraph_id, country) VALUES (24, 1, "vietnam");

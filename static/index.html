@@ -54,7 +54,7 @@
         </div>
         <div align="center" style="width: 900px; display: table-row;">
             <div align="center" style="width: 900px; display: table-cell;"> 
-                <div align="center" id="paragraph" class="form-control" style="width: 900px; height:auto;max-height:200px; font-size: 25px; display: inline-block; max-width: fit-content;" contenteditable="true"></div>
+                <div align="center" id="paragraph" class="form-control" style="width: 950px; height:auto;max-height:300px; font-size: 25px; display: inline-block; max-width: fit-content;" contenteditable="true"></div>
             </div>
         </div>
     </div>
@@ -197,7 +197,7 @@ async function startItAll() {
 
                 curr_interim_indx = i
 
-                $('#paragraph').html('<b>' + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</b> " +
+                $('#paragraph').html('<span class="read_para">' + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</span> " +
                     paragraph.slice(curr_paragraph_indx).join(" "))
                 
                 if (curr_paragraph_indx < paragraph.length) {
