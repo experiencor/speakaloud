@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS paragraph (
     tags VARCHAR(256)       DEFAULT "",
     length INT              DEFAULT -1,
     content VARCHAR(1024)   DEFAULT "",
+    ipa VARCHAR(1024)       DEFAULT "",
     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -62,5 +63,10 @@ INSERT INTO paragraph (content) VALUES ("Although technology is a good thing, ev
 INSERT INTO paragraph (content) VALUES ("I asked God for a bike, but I know God doesn’t work that way. So I stole a bike and asked for forgiveness.");
 INSERT INTO paragraph (content) VALUES ("Light travels faster than sound. This is why some people appear bright until you hear them speak.");
 INSERT INTO paragraph (content) VALUES ("Do not argue with an idiot. He will drag you down to his level and beat you with experience.");
+INSERT INTO paragraph (content) VALUES ("The problem isn’t that obesity runs in your family. The problem is no one runs in your family.");
+INSERT INTO paragraph (content) VALUES ("In my picture, the umbrella's red and white. In my picture, the man isn't wearing sunglasses. In my picture, there are three steps.");
+INSERT INTO paragraph (content) VALUES ("Give a man a fish and you feed him for a day. But teach a man to fish, and you saved yourself a fish, haven't you");
+INSERT INTO paragraph (content) VALUES ("A positive attitude may not solve all your problems. But it will annoy enough people to make it worth the effort.");
+INSERT INTO paragraph (content) VALUES ("Today a man knocked on my door and asked for a small donation toward the local swimming pool. I gave him a glass of water.");
 
 INSERT INTO user (age, next_paragraph_id, country) VALUES (24, 1, "vietnam");

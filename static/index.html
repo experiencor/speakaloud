@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head><link rel="stylesheet" href="styles/main.css"/></head>
+<head>
+    <link rel="stylesheet" href="styles/main.css"/>
+    <link rel="stylesheet" href="styles/style.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+</head>
 <title> Pronunciation Gym </title>
 <body>
     <nav class="slidemenu">
@@ -22,10 +26,10 @@
         <div class="bar"></div>
         </div>
     </nav>
-    <div style="width: 100%; display: table; margin-top: 50px;">
-        <div style="display: table-row;">
-            <div align="center" style="width: 25%; display: table-cell; vertical-align: top;">
-                <ul class="timer">
+    <div style="width: 100%; display: table;">
+        <div style="display: table-row;" align="center">
+            <div align="center" style="width: 25%; display: table-cell;">
+                <ul class="timer" align="center">
                     <li> 
                         <span class="hours">00</span>
                         <p class="hours_ref">hours</p>
@@ -47,22 +51,21 @@
                     </li>
                 </ul>
             </div>
-            <div style="width: 50%; display: table-cell;"> 
-                <span id="paragraph" class="paragraph" style="font-size: 200%; background: inherit;" ></span>
-            </div>
-            <div align="center" style="display: table-cell; " >
-                <span id="ipa_span" class="ipa" style="font-size: 200%;">&nbsp</span></br>
-                <span id="word_span" class="word" style="font-size: 200%;">&nbsp</span></br>
-                <span id="interim_span" class="interim" style="font-size: 100%;">&nbsp</span>
-                </br>
+        </div>
+        <div align="center" style="width: 900px; display: table-row;">
+            <div align="center" style="width: 900px; display: table-cell;"> 
+                <div align="center" id="paragraph" class="form-control" style="width: 900px; height:auto;max-height:200px; font-size: 25px; display: inline-block; max-width: fit-content;" contenteditable="true"></div>
             </div>
         </div>
     </div>
+    
     <div align="center" style="margin-top: 10px;">
-        <div align="center" id="history" style="width: 900px; height: 500px;"></div>
+        <div align="center" id="history" style="width: 900px; height: 400px;"></div>
     </div>
 </body>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/jquery.textcomplete.min.js"></script>
 <script type="text/javascript" src="js/main.js"></script>
 <script type="text/javascript">
 // global variables
@@ -71,12 +74,11 @@ var user_id = null;
 var paragraph_id = null;
 var session_id = null;
 var paragraph = [];
+var ipa = [];
+var current_ipa = "";
 var curr_paragraph_indx = 0;
 var curr_interim_indx = 0;
-
-var ipa_span = document.getElementById('ipa_span')
-var word_span = document.getElementById('word_span')
-var interim_span = document.getElementById('interim_span') 
+var curr_interim = ""
 
 var stopWatch = new StopWatch();
 var started = setInterval(clockRunning, 500);
@@ -93,6 +95,31 @@ if (!('webkitSpeechRecognition' in window)) {
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    $(document).ready(function() {
+    $('#paragraph').textcomplete([
+        {
+            // #3 - Rgular experession used to trigger search
+            match: "",
+
+            // #4 - Function called at every new keystroke
+            search: function(query, callback) {
+                callback([{name: "/" + current_ipa + "/"}, {name: curr_interim}])
+            },
+
+            // #5 - Template used to display each result obtained by the Algolia API
+            template: function (hit) {
+                return hit.name;
+            },
+        }
+    ]);
+    });
+
+    $(document).ready(function(){
+        $("#paragraph").on("keypress", function(e) {
+            e.preventDefault();
+        });
+    });
+
     startItAll()
 }
 
@@ -108,6 +135,7 @@ async function startItAll() {
     results = await getParagraphForUser(user_id);
     paragraph_id = results["paragraph_id"]
     paragraph = results["content"].split(" ");
+    ipa = results["ipa"].split(" ");
     min_completion_time = results["min_completion_time"]
 
     reset();
@@ -126,30 +154,6 @@ async function startItAll() {
     recognition.onerror = function (event) {
         recognizing = false;
     };
-
-    /*recognition.onaudiostart = function() {
-        console.log("onaudiostart")
-    }
-
-    recognition.onaudioend = function() {
-        console.log("onaudioend")
-    }
-
-    recognition.onspeechstart = function() {
-        console.log("onspeechstart")
-    }
-
-    recognition.onspeechend = function() {
-        console.log("onspeechend")
-    }
-
-    recognition.onsoundstart = function() {
-        console.log("onsoundstart")
-    }
-
-    recognition.onsoundend = function() {
-        console.log("onsoundend")
-    }*/
 
     recognition.onend = function() {
         recognition.start()
@@ -188,32 +192,36 @@ async function startItAll() {
                          duration, 
                          completed_at);
 
+                cursorPosition += 1
                 curr_paragraph_indx += 1
+
                 curr_interim_indx = i
 
-                document.getElementById('paragraph').innerHTML = 
-                    "<strong>" + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</strong> " +
-                    paragraph.slice(curr_paragraph_indx).join(" ");
-
+                $('#paragraph').html('<b>' + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</b> " +
+                    paragraph.slice(curr_paragraph_indx).join(" "))
+                
                 if (curr_paragraph_indx < paragraph.length) {
-                    transcribe(paragraph[curr_paragraph_indx])
+                    current_ipa = ipa[curr_paragraph_indx]
                 }
             }
             i += 1
         }
-        interim_span.innerHTML = words.slice(curr_interim_indx).join(" ")
+
+        curr_interim = words.slice(curr_interim_indx).join(" ")
+        triggerContextMenu()
 
         if (isFinal | (curr_paragraph_indx == paragraph.length)) {
             if (isFinal) {
                 curr_interim_indx = 0
-                interim_span.innerHTML = ""
+                curr_interim = ""
+                triggerContextMenu()
             }
 
             completed_at = stopWatch.getTime()
             var word = "";
             if (curr_paragraph_indx == paragraph.length) {
-                const ut = new SpeechSynthesisUtterance('Well done!');
-                speechSynthesis.speak(ut);
+                //const ut = new SpeechSynthesisUtterance('Well done!');
+                //speechSynthesis.speak(ut);
                 logFinalSent(user_id, 
                              paragraph_id, 
                              session_id, 
@@ -244,21 +252,6 @@ async function startItAll() {
     if (!recognizing) {
         recognition.start()
     }    
-}
-
-function transcribe(word) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "transcribe/" + word, true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            var jsonContent = JSON.parse(xhr.responseText);
-            ipa_span.innerHTML = jsonContent["ipa"]
-            word_span.innerHTML = norm(word)
-        }
-    }
-    xhr.send();
 }
 
 function logEvent(user_id, paragraph_id, session_id, word_index, word, paragraph_length, duration, completed_at) {
@@ -293,7 +286,6 @@ function logFinalSent(user_id, paragraph_id, session_id, sentence, word_index, w
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
             if (callback) {
-                console.log("asfasdfsadf")
                callback()
             }
         }
@@ -330,16 +322,29 @@ function clockRunning(){
 };
 
 function reset(){
+    cursorPosition = 0
     is_building_final_sent = false
     curr_paragraph_indx = 0;
-    transcribe(paragraph[curr_paragraph_indx])
+    current_ipa = ipa[curr_paragraph_indx]
     session_id = generateRandomString(16);
 
-    document.getElementById('paragraph').innerHTML = paragraph.join(" ")
-    transcribe(paragraph[0])
+    document.getElementById('paragraph').innerHTML = "\u200B" + paragraph.join(" ")
+    curr_interim = ""
+    triggerContextMenu()
 
     stopWatch = new StopWatch();
     started = setInterval(clockRunning, 100);  
+}
+
+function triggerContextMenu() {
+    var el = $('#paragraph')[0];
+    var range = document.createRange();
+    var sel = window.getSelection();
+    range.setStart(el.childNodes[0], 1);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    $('#paragraph').data('textComplete').trigger("");/**/
 }
 
 function generateRandomString(length) {
@@ -403,18 +408,6 @@ function drawBarChart() {
     xhr.send();
 }
 
-document.addEventListener("keypress", function(e) {
-    if (e.keyCode == 32) {
-        readit();
-    }
-});
-
-document.addEventListener("keypress", function(e) {
-    if (e.keyCode == 13) {
-        reset();
-    }
-});
-
 function login() {
     user_name = "";
     person = prompt("Please enter your name:", "");
@@ -424,5 +417,29 @@ function login() {
         startItAll()
     }
 }
+
+document.addEventListener("keydown", function(e) {
+    if (e.keyCode == 32) {
+        e.preventDefault();
+        readit();
+    }
+
+    if (e.keyCode == 13) {
+        e.preventDefault();
+        reset();
+    }
+    triggerContextMenu()
+});
+
+document.addEventListener("keyup", function(e) {
+    if (e.keyCode == 32) {
+        e.preventDefault();
+    }
+
+    if (e.keyCode == 13) {
+        e.preventDefault();
+    }
+    triggerContextMenu()
+});
 </script>
 </html>

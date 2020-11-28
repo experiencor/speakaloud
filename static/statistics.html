@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head><link rel="stylesheet" href="styles/main.css"/></head>
+<head>
+    <link rel="stylesheet" href="styles/main.css"/>
+    <link rel="stylesheet" href="styles/style.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">    
+</head>
 <title> Pronunciation Gym </title>
 <body>
     <nav class="slidemenu">
@@ -92,7 +96,6 @@ function draw_word_time(word_list) {
     while (rows.length < 10) {
         rows.push([" ", 0])
     }
-    console.log(rows)
 
     var data = new google.visualization.arrayToDataTable(rows);
 
@@ -104,7 +107,7 @@ function draw_word_time(word_list) {
         axes: {
             x: {0: {side: 'bottom'}} // Top x-axis.
         },
-        bar: { groupWidth: "90%" }
+        bar: { groupWidth: "70%" }
     };
 
     var chart = new google.visualization.ColumnChart(document.getElementById('word_time'));
@@ -132,7 +135,7 @@ function draw_word_count(word_list) {
         axes: {
             x: {0: {side: 'bottom'}} // Top x-axis.
         },
-        bar: { groupWidth: "90%" }
+        bar: { groupWidth: "70%" }
     };
 
     var chart = new google.visualization.ColumnChart(document.getElementById('word_count'));
