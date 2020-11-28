@@ -28,8 +28,8 @@
     </nav>
     <div style="width: 100%; display: table; margin-top: 50px;">
         <div style="display: table-row;">
-            <div align="left" id="hard_word" style="margin-left: 50px; margin-top: 50px; width: 46%; height: 500px; display:inline-block"></div>
-            <div align="right" style="margin-right: 20px; float: right; width: 46%; display: table; display:inline-block">
+            <div align="left" id="hard_word" style="margin-left: 250px; margin-top: 20px; width: 35%; height: 550px; display:inline-block"></div>
+            <div align="right" style="margin-right: 250px; float: right; width: 35%; display: table; display:inline-block">
                 <div align="center" id="word_time" style="width: 100%; height: 300px;"></div>
                 <div align="center" id="word_count" style="width: 100%; height: 300px;"></div>
             </div>
@@ -63,27 +63,27 @@ function getStats() {
 }
 
 function draw_hard_word(word_list) {
-    rows = [["Difficult Words", "Average Time"]]
+    rows = [[" ", "Thời Lượng"]]
     for (var i = 0; i < word_list.length; ++i) {
         row = word_list[i]
         row[1] = row[1]/1000
         rows.push(row)
     }
-
     var data = new google.visualization.arrayToDataTable(rows);
 
     var options = {
-        title: "Difficult Words",
-        bars: 'horizontal', // Required for Material Bar Charts.
-        legend: { position: 'top', alignment: 'end' },
+        title: 'Từ Khó',
+        bars: 'horizontal',
+        legend: { position: 'none'},
+        theme: "material",
         axes: {
-            x: {0: {side: 'top'}} // Top x-axis.
+            x: {
+              0: { side: 'none'}
+            }
         },
-        bar: { groupWidth: "90%" }
     };
-
     var chart = new google.charts.Bar(document.getElementById('hard_word'));
-    chart.draw(data, options);
+    chart.draw(data, google.charts.Bar.convertOptions(options));
 }
 
 function draw_word_time(word_list) {
@@ -100,7 +100,7 @@ function draw_word_time(word_list) {
     var data = new google.visualization.arrayToDataTable(rows);
 
     var options = {
-        title: "Time Per Word",
+        title: "Thời Lượng Trung Bình Mỗi Từ",
         bars: 'vertical', // Required for Material Bar Charts.
         legend: { position: "none" },
         theme: "material",
@@ -128,7 +128,7 @@ function draw_word_count(word_list) {
     var data = new google.visualization.arrayToDataTable(rows);
 
     var options = {
-        title: "Word Count",
+        title: "Số Lượng Từ",
         bars: 'vertical', // Required for Material Bar Charts.
         legend: { position: "none" },
         theme: "material",

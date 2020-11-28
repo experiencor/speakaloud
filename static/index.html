@@ -83,6 +83,7 @@ var curr_interim = ""
 var stopWatch = new StopWatch();
 var started = setInterval(clockRunning, 500);
 var final_sent_started_at = 0
+var transcript = "";
 var is_building_final_sent = false
 
 // entry point to client-side logic
@@ -322,6 +323,9 @@ function clockRunning(){
 };
 
 function reset(){
+    if (transcript !== "" & is_building_final_sent === true) {
+        console.log(transcript)
+    }
     cursorPosition = 0
     is_building_final_sent = false
     curr_paragraph_indx = 0;
