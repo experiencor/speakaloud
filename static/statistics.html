@@ -63,7 +63,7 @@ function getStats() {
 }
 
 function draw_hard_word(word_list) {
-    rows = [["Word", "Average Time"]]
+    rows = [["Difficult Word", "Average Time"]]
     for (var i = 0; i < word_list.length; ++i) {
         row = word_list[i]
         row[1] = row[1]/1000
@@ -87,7 +87,7 @@ function draw_hard_word(word_list) {
 }
 
 function draw_word_time(word_list) {
-    rows = [["Date", "Time per Word"]]
+    rows = [["Date", "Time Per Word"]]
     for (var i = 0; i < word_list.length; ++i) {
         row = word_list[i]
         rows.push([row[0], row[1]/1000])
@@ -100,7 +100,7 @@ function draw_word_time(word_list) {
     var data = new google.visualization.arrayToDataTable(rows);
 
     var options = {
-        title: "Number of Second per Word",
+        title: "Time Per Word",
         bars: 'vertical', // Required for Material Bar Charts.
         legend: { position: "none" },
         theme: "material",
