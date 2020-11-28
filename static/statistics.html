@@ -63,7 +63,7 @@ function getStats() {
 }
 
 function draw_hard_word(word_list) {
-    rows = [["Difficult Word", "Average Time"]]
+    rows = [["Difficult Words", "Average Time"]]
     for (var i = 0; i < word_list.length; ++i) {
         row = word_list[i]
         row[1] = row[1]/1000
@@ -128,7 +128,7 @@ function draw_word_count(word_list) {
     var data = new google.visualization.arrayToDataTable(rows);
 
     var options = {
-        title: "Word Count Everyday",
+        title: "Word Count",
         bars: 'vertical', // Required for Material Bar Charts.
         legend: { position: "none" },
         theme: "material",
