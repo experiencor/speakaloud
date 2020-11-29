@@ -337,7 +337,8 @@ function reset(){
 
     document.getElementById('paragraph').innerHTML = "\u200B" + paragraph.join(" ")
     curr_interim = ""
-    setTimeout(triggerContextMenu, 0);  
+    setTimeout(triggerContextMenu, 10);  
+    setTimeout(triggerContextMenu, 10);  
 
     stopWatch = new StopWatch();
     started = setInterval(clockRunning, 500);  
