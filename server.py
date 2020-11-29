@@ -5,9 +5,12 @@ import requests
 import json
 import logging
 from bs4 import BeautifulSoup
+import numpy as np
 import pymysql.cursors
 import datetime
+import time
 import regex
+import base64
 import pandas as pd
 from dateutil import parser
 from flask_web_log import Log
@@ -37,7 +40,19 @@ def make_conn():
 def normalize(word):
     if word in ["I", "I'm"]:
         return word
-    return word.lower()
+    return regex.sub("[,\.!]", "", word).lower()
+
+
+def generate_random_string(length):
+    res = np.base_repr(int(time.time() * 1000), 36)
+    res += "".join([np.base_repr(np.random.randint(0,36), 36) for _ in range(length-8)])
+    return res
+
+
+def decode64(crypted_message):
+    base64_bytes = crypted_message.encode()
+    message_bytes = base64.b64decode(base64_bytes)
+    return message_bytes.decode()
 
 
 # api functions
@@ -58,6 +73,13 @@ def statistics():
 def create_user(username):
     connection = make_conn()
     with connection.cursor() as cursor:
+        cursor.execute(f"SELECT id FROM user WHERE username=\'{username}\' LIMIT 1;")
+        result = cursor.fetchone()
+        if result:
+            return json.dumps({"user_id": result["id"]})
+        connection.commit()
+    
+    with connection.cursor() as cursor:
         cursor.execute(f"INSERT INTO user (username) VALUES (\"{username}\")")
         user_id = cursor.lastrowid
         connection.commit()
@@ -66,15 +88,28 @@ def create_user(username):
 
 @app.route('/get_paragraph_for_user/<user_id>', methods=['POST'])
 def get_paragraph_for_user(user_id):
+    user_id = int(user_id)
     connection = make_conn()
     with connection.cursor() as cursor:
         cursor.execute(f"SELECT next_paragraph_id FROM user WHERE id={user_id} LIMIT 1;")
         paragraph_id = cursor.fetchone()["next_paragraph_id"]
 
         cursor.execute(f"SELECT * FROM paragraph WHERE id={paragraph_id} LIMIT 1;")
-        content = cursor.fetchone()["content"]
+        result = cursor.fetchone()
+        content = result["content"]
+        ipa = decode64(result["ipa"])
+
+        cursor.execute(f"""SELECT min(completed_at) as min_completion_time FROM event WHERE 
+                           paragraph_id={paragraph_id} AND word_index=(paragraph_length-1) LIMIT 1;""")
+        result = cursor.fetchone()
+
+        if len(result) == 0:
+            min_completion_time = 0
+        else:
+            min_completion_time = result['min_completion_time']
+
         connection.commit()
-    return json.dumps({"paragraph_id": paragraph_id, "content": content})
+    return json.dumps({"paragraph_id": paragraph_id, "content": content, "ipa": ipa, "min_completion_time": min_completion_time})
 
 
 @app.route('/get_history/<user_id>/<paragraph_id>', methods=['POST'])

@@ -1,3 +1,5 @@
+.read_para {color:red;}
+
 img {
     display: block;
     margin-left: auto;
@@ -55,13 +57,13 @@ ul.timer li p {
 
 .slidemenu{
   font-family: arial, sans-serif;
-  max-width: 300px;
+  max-width: 350px;
   margin: 15px auto;
   overflow: hidden;
 }
 
 .slidemenu label{
-  width: 50%;
+  width: 33%;
   text-align: center;
   display: block;
   float: left;
@@ -103,7 +105,7 @@ ul.timer li p {
 }
 
 .slider .bar{
-  width: 50%;
+  width: 33%;
   height: 5px;
   background: #333;
   border-radius: 5px;
@@ -123,4 +125,4 @@ ul.timer li p {
 }
 
 .slidemenu #slide-item-1:checked ~ .slider .bar{ margin-left: 0; }
-.slidemenu #slide-item-2:checked ~ .slider .bar{ margin-left: 50%; }
+.slidemenu #slide-item-2:checked ~ .slider .bar{ margin-left: 33%; }
