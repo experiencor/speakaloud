@@ -196,7 +196,7 @@ async function startItAll() {
                 cursorPosition += 1
                 curr_paragraph_indx += 1
 
-                curr_interim_indx = i
+                curr_interim_indx = i+1
 
                 $('#paragraph').html('<span class="read_para">' + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</span> " +
                     paragraph.slice(curr_paragraph_indx).join(" "))
