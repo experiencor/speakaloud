@@ -81,7 +81,7 @@ var curr_interim_indx = 0;
 var curr_interim = ""
 
 var stopWatch = new StopWatch();
-var started = setInterval(clockRunning, 500);
+var started = null;
 var final_sent_started_at = 0
 var transcript = "";
 var is_building_final_sent = false
@@ -337,10 +337,10 @@ function reset(){
 
     document.getElementById('paragraph').innerHTML = "\u200B" + paragraph.join(" ")
     curr_interim = ""
-    setInterval(triggerContextMenu, 0);  
+    setTimeout(triggerContextMenu, 0);  
 
     stopWatch = new StopWatch();
-    started = setInterval(clockRunning, 100);  
+    started = setInterval(clockRunning, 500);  
 }
 
 function triggerContextMenu() {
