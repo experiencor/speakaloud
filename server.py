@@ -80,7 +80,7 @@ def create_user(username):
         connection.commit()
     
     with connection.cursor() as cursor:
-        cursor.execute(f"INSERT INTO user (username) VALUES (\"{username}\")")
+        cursor.execute(f"INSERT INTO user (username, next_paragraph_id) VALUES (\"{username}\", 25)")
         user_id = cursor.lastrowid
         connection.commit()
     return json.dumps({"user_id": user_id})
