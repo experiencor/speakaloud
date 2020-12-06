@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS user (
     email VARCHAR(64)       DEFAULT "",
     fullname VARCHAR(64)    DEFAULT "",
     password VARCHAR(64)    DEFAULT "",
+    level INT               DEFAULT 0,
     next_paragraph_id INT   DEFAULT 1,
     age INT                 DEFAULT 0,
     country VARCHAR(64)     DEFAULT "",
@@ -41,11 +42,19 @@ CREATE TABLE IF NOT EXISTS paragraph (
     id INT AUTO_INCREMENT   PRIMARY KEY,
     topic VARCHAR(64)       DEFAULT "",
     tags VARCHAR(256)       DEFAULT "",
+    source VARCHAR(64)      DEFAULT "",
+    author VARCHAR(64)      DEFAULT "",
+    level INT               DEFAULT 0,
     length INT              DEFAULT -1,
     content VARCHAR(1024)   DEFAULT "",
     ipa VARCHAR(1024)       DEFAULT "",
     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE user        ADD level   INT         DEFAULT 0;
+ALTER TABLE paragraph   ADD level   INT         DEFAULT 0;
+ALTER TABLE paragraph   ADD source  VARCHAR(64) DEFAULT "";
+ALTER TABLE paragraph   ADD author  VARCHAR(64) DEFAULT "";
 
 INSERT INTO paragraph (content) VALUES ("We must reuse the plastic bags we already have at home as many times as we can before throwing them away.");
 INSERT INTO paragraph (content) VALUES ("Good writers accomplish these tasks by immediately establishing each paragraph’s topic and maintaining paragraph unity, by using concrete, personal examples to demonstrate their points, and by not prolonging the ending of the essay needlessly.");

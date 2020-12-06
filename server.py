@@ -12,6 +12,7 @@ import time
 import regex
 import base64
 import pandas as pd
+from elasticsearch import Elasticsearch
 from dateutil import parser
 from flask_web_log import Log
 
@@ -25,6 +26,7 @@ logger.setLevel(logging.DEBUG)
 
 app.config["LOG_TYPE"] = "CSV"
 Log(app)
+es = Elasticsearch()
 
 
 # utility functions
@@ -80,7 +82,7 @@ def create_user(username):
         connection.commit()
     
     with connection.cursor() as cursor:
-        cursor.execute(f"INSERT INTO user (username, next_paragraph_id) VALUES (\"{username}\", 25)")
+        cursor.execute(f"INSERT INTO user (username, next_paragraph_id, level) VALUES (\"{username}\", 25, 1)")
         user_id = cursor.lastrowid
         connection.commit()
     return json.dumps({"user_id": user_id})
@@ -232,6 +234,107 @@ def transcribe(word):
     soup = BeautifulSoup(json.loads(response.content)["result"], features="html.parser")
     ipa = soup.get_text().strip().split("\n")[1]
     return json.dumps({"ipa": ipa})
+
+
+def set_next_para(user_id, paragraph_id):
+    connection = make_conn()
+    with connection.cursor() as cursor:
+        cursor.execute(f"update user set next_paragraph_id={paragraph_id} where id={user_id};")
+        connection.commit()
+
+
+def get_user(user_id):
+    connection = make_conn()
+    with connection.cursor() as cursor:
+        cursor.execute(f'SELECT * FROM user WHERE id={user_id} LIMIT 1;')
+        user = cursor.fetchone()
+        connection.commit()
+    return user
+
+
+@app.route('/prev_para/<user_id>', methods=['POST'])
+def prev_para(user_id):
+    connection = make_conn()
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""SELECT paragraph_id FROM event WHERE user_id={user_id} and 
+                paragraph_length-1=word_index group by paragraph_id"""
+        )
+        paragraphs = pd.DataFrame(cursor.fetchall())
+
+    if len(paragraphs) == 0:
+        return ""
+    user = get_user(user_id)
+    next_paragraph_id = user["next_paragraph_id"]
+
+    paragraph_ids = set(paragraphs["paragraph_id"])
+    if next_paragraph_id in paragraph_ids:
+        paragraph_ids.remove(next_paragraph_id)
+
+    if not paragraph_ids:
+        return ""
+
+    paragraph_id = np.random.choice(list(paragraph_ids))
+    set_next_para(user_id, paragraph_id)
+    return ""
+
+
+@app.route('/next_para/<user_id>', methods=['POST'])
+def next_para(user_id):
+    # get the level of the user
+    user = get_user(user_id)
+    level, next_paragraph_id = user["level"], user["next_paragraph_id"]
+
+    # get the word stats of the user
+    results = json.loads(get_stats(user_id))
+
+    # find a suitable paragraph
+    top, select = 5, 3
+    trial_count, max_tries = 0, 10
+    paragraph_id = None
+    while trial_count < max_tries:
+        if trial_count == max_tries-1 or not results["word_stats"]:
+            query = f"(level: {level})"
+        else:
+            probs = np.array([prob for [_, prob] in results["word_stats"][:top]])
+            top = min(top, len(probs))
+            probs = probs / sum(probs)
+            select_indices = set(np.random.choice(list(range(top)), size=select, replace=False, p=probs))
+
+            select_words = []
+            un_select_words = []
+            for i in range(top):
+                if i in select_indices:
+                    select_words += [results["word_stats"][i][0]]
+                else:
+                    un_select_words += [results["word_stats"][i][0]]
+            query = "(" + " ".join(select_words) + ") AND (level: " + str(level) + ")"
+            #query = "(" + " ".join(select_words) + ") AND !(" + " ".join(un_select_words) + ") AND (level: " + str(level) + ")"
+        print(query)
+
+        res = es.search(index="paragraph", body={
+            "size": 3,
+            "query": {
+                "query_string": {
+                    "query": query,
+                    "default_field": "content"
+                }
+            }
+        })
+        
+        if (res["hits"]["hits"]):
+            paragraph_ids = [int(paragraph["_id"]) for paragraph in res["hits"]["hits"] if int(paragraph["_id"]) != next_paragraph_id]
+            scores = [float(paragraph["_score"]) for paragraph in res["hits"]["hits"] if int(paragraph["_id"]) != next_paragraph_id]
+            if not paragraph_ids:
+                continue
+            else:
+                scores = np.array(scores)
+                scores = scores / sum(scores)
+                paragraph_id = np.random.choice(paragraph_ids, p=scores)
+            break
+        trial_count += 1
+    set_next_para(user_id, paragraph_id)
+    return json.dumps(results)
 
 
 if __name__ == "__main__":

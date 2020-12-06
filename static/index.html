@@ -53,6 +53,10 @@
             </div>
         </div>
         <div align="center" style="width: 900px; display: table-row;">
+            <button onclick="prevPara()" class="btn btn-primary btn-sm" type="button" style="width: 80px; margin-bottom: 10px; margin-right: 5px;">Previous</button>
+            <button onclick="nextPara()" class="btn btn-primary btn-sm" type="button" style="width: 80px; margin-bottom: 10px; margin-left: 5px;">Next</button>
+        </div>
+        <div align="center" style="width: 900px; display: table-row;">
             <div align="center" style="width: 900px; display: table-cell;"> 
                 <div align="center" id="paragraph" class="form-control" style="width: 950px; height:auto;max-height:300px; font-size: 25px; display: inline-block; max-width: fit-content;" contenteditable="true"></div>
             </div>
@@ -196,7 +200,7 @@ async function startItAll() {
                 cursorPosition += 1
                 curr_paragraph_indx += 1
 
-                curr_interim_indx = i+1
+                curr_interim_indx = i + 1
 
                 $('#paragraph').html('<span class="read_para">' + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</span> " +
                     paragraph.slice(curr_paragraph_indx).join(" "))
@@ -204,12 +208,20 @@ async function startItAll() {
                 if (curr_paragraph_indx < paragraph.length) {
                     current_ipa = ipa[curr_paragraph_indx]
                 }
+
+                triggerContextMenu()
             }
             i += 1
         }
 
         curr_interim = words.slice(curr_interim_indx).join(" ")
-        triggerContextMenu()
+        suggestionList = $("#textcomplete-dropdown-1")
+        if (suggestionList.css("display") == "none") {
+            triggerContextMenu()
+        } else {
+            interim = suggestionList.children()[1]
+            interim.innerHTML = "<a>" + curr_interim + "</a>"
+        }
 
         if (isFinal | (curr_paragraph_indx == paragraph.length)) {
             if (isFinal) {
@@ -253,6 +265,35 @@ async function startItAll() {
     if (!recognizing) {
         recognition.start()
     }    
+}
+
+function resetRecognition() {
+    recognition.stop()
+
+    if (is_building_final_sent) {
+        is_building_final_sent = false
+
+        if (curr_paragraph_indx == paragraph.length) {
+            word = paragraph[curr_paragraph_indx]
+        } else {
+            word = ""
+        }
+
+        completed_at = stopWatch.getTime()
+        stopWatch.stop()
+        logFinalSent(user_id, 
+                     paragraph_id, 
+                     session_id, 
+                     transcript, 
+                     curr_paragraph_indx, 
+                     word, 
+                     final_sent_started_at, 
+                     completed_at)
+
+        curr_interim_indx = 0
+        curr_interim = ""
+        triggerContextMenu()
+    }
 }
 
 function logEvent(user_id, paragraph_id, session_id, word_index, word, paragraph_length, duration, completed_at) {
@@ -341,7 +382,9 @@ function reset(){
     setTimeout(triggerContextMenu, 10);  
 
     stopWatch = new StopWatch();
-    started = setInterval(clockRunning, 500);  
+    started = setInterval(clockRunning, 100);  
+
+    recognition.stop()
 }
 
 function triggerContextMenu() {
@@ -436,6 +479,10 @@ document.addEventListener("keydown", function(e) {
         e.preventDefault();
         reset();
     }
+
+    if (e.keyCode == 17) {
+        e.preventDefault();
+    }
     triggerContextMenu()
 });
 
@@ -447,7 +494,37 @@ document.addEventListener("keyup", function(e) {
     if (e.keyCode == 13) {
         e.preventDefault();
     }
+
+    if (e.keyCode == 17) {
+        e.preventDefault();
+    }
     triggerContextMenu()
 });
+
+function prevPara() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "prev_para/" + String(user_id), true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            startItAll();
+        }
+    }
+    xhr.send();    
+}
+
+function nextPara() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "next_para/" + String(user_id), true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            startItAll();
+        }
+    }
+    xhr.send();    
+}
 </script>
 </html>
