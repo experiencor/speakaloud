@@ -288,7 +288,7 @@ def next_para(user_id):
     results = json.loads(get_stats(user_id))
 
     # find a suitable paragraph
-    top, select = 8, 3
+    top, select = 10, 3
     trial_count, max_tries = 0, 10
     paragraph_id = None
     while trial_count < max_tries:
@@ -312,7 +312,7 @@ def next_para(user_id):
         print(query)
 
         res = es.search(index="paragraph", body={
-            "size": 3,
+            "size": 10,
             "query": {
                 "query_string": {
                     "query": query,
