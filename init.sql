@@ -51,8 +51,8 @@ CREATE TABLE IF NOT EXISTS paragraph (
     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE user        ADD level   INT         DEFAULT 0;
-ALTER TABLE paragraph   ADD level   INT         DEFAULT 0;
+ALTER TABLE user        ADD level   INT         DEFAULT 1;
+ALTER TABLE paragraph   ADD level   INT         DEFAULT 1;
 ALTER TABLE paragraph   ADD source  VARCHAR(64) DEFAULT "";
 ALTER TABLE paragraph   ADD author  VARCHAR(64) DEFAULT "";
 

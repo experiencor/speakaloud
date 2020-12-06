@@ -162,14 +162,13 @@ def get_stats(user_id):
 
         # compute word statistics
         cursor.execute(
-            f"""select o.session_id, o.completed_at, o.word_index, o.word
-                FROM final_sent o
-                    LEFT JOIN final_sent b
-                        ON o.session_id = b.session_id AND o.completed_at < b.completed_at
-                WHERE o.user_id={user_id} AND b.completed_at is NULL AND o.word!=''"""
+            f"""select session_id, completed_at, word_index, word
+                FROM final_sent WHERE user_id={user_id} AND completed_at>0 and word!=''"""
         )
         result = cursor.fetchall()
         final_sent_words = pd.DataFrame(result)
+        final_sent_words = final_sent_words.sort_values(["session_id", "completed_at"])
+        final_sent_words = final_sent_words.groupby("session_id").last().reset_index()
 
         if len(final_sent_words) == 0:
             combined_words = words[["word", "duration"]].copy()
