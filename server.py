@@ -288,7 +288,7 @@ def next_para(user_id):
     results = json.loads(get_stats(user_id))
 
     # find a suitable paragraph
-    top, select = 5, 3
+    top, select = 8, 3
     trial_count, max_tries = 0, 10
     paragraph_id = None
     while trial_count < max_tries:
