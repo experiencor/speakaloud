@@ -88,13 +88,15 @@ def create_user(username):
     return json.dumps({"user_id": user_id})
 
 
-@app.route('/get_paragraph_for_user/<user_id>', methods=['POST'])
-def get_paragraph_for_user(user_id):
+@app.route('/get_user_profile/<user_id>', methods=['POST'])
+def get_user_profile(user_id):
     user_id = int(user_id)
     connection = make_conn()
     with connection.cursor() as cursor:
-        cursor.execute(f"SELECT next_paragraph_id FROM user WHERE id={user_id} LIMIT 1;")
-        paragraph_id = cursor.fetchone()["next_paragraph_id"]
+        cursor.execute(f"SELECT * FROM user WHERE id={user_id} LIMIT 1;")
+        user = cursor.fetchone()
+        paragraph_id = user["next_paragraph_id"]
+        next_count = user["next_count"]
 
         cursor.execute(f"SELECT * FROM paragraph WHERE id={paragraph_id} LIMIT 1;")
         result = cursor.fetchone()
@@ -111,7 +113,7 @@ def get_paragraph_for_user(user_id):
             min_completion_time = result['min_completion_time']
 
         connection.commit()
-    return json.dumps({"paragraph_id": paragraph_id, "content": content, "ipa": ipa, "min_completion_time": min_completion_time})
+    return json.dumps({"next_count": next_count, "paragraph_id": paragraph_id, "content": content, "ipa": ipa, "min_completion_time": min_completion_time})
 
 
 @app.route('/get_history/<user_id>/<paragraph_id>', methods=['POST'])
@@ -167,12 +169,12 @@ def get_stats(user_id):
         )
         result = cursor.fetchall()
         final_sent_words = pd.DataFrame(result)
-        final_sent_words = final_sent_words.sort_values(["session_id", "completed_at"])
-        final_sent_words = final_sent_words.groupby("session_id").last().reset_index()
 
         if len(final_sent_words) == 0:
             combined_words = words[["word", "duration"]].copy()
         else:
+            final_sent_words = final_sent_words.sort_values(["session_id", "completed_at"])
+            final_sent_words = final_sent_words.groupby("session_id").last().reset_index()
             word_sessions = words.groupby("session_id")["completed_at"].max().reset_index()
             final_sent_words = final_sent_words.merge(word_sessions, on="session_id", how="left")
             final_sent_words.completed_at_y.fillna(0, inplace=True)
@@ -251,38 +253,19 @@ def get_user(user_id):
     return user
 
 
-@app.route('/prev_para/<user_id>', methods=['POST'])
-def prev_para(user_id):
-    connection = make_conn()
-    with connection.cursor() as cursor:
-        cursor.execute(
-            f"""SELECT paragraph_id FROM event WHERE user_id={user_id} and 
-                paragraph_length-1=word_index group by paragraph_id"""
-        )
-        paragraphs = pd.DataFrame(cursor.fetchall())
-
-    if len(paragraphs) == 0:
-        return ""
-    user = get_user(user_id)
-    next_paragraph_id = user["next_paragraph_id"]
-
-    paragraph_ids = set(paragraphs["paragraph_id"])
-    if next_paragraph_id in paragraph_ids:
-        paragraph_ids.remove(next_paragraph_id)
-
-    if not paragraph_ids:
-        return ""
-
-    paragraph_id = np.random.choice(list(paragraph_ids))
-    set_next_para(user_id, paragraph_id)
-    return ""
-
-
 @app.route('/next_para/<user_id>', methods=['POST'])
 def next_para(user_id):
     # get the level of the user
     user = get_user(user_id)
-    level, next_paragraph_id = user["level"], user["next_paragraph_id"]
+    level, next_paragraph_id, next_count = user["level"], user["next_paragraph_id"], user["next_count"]
+    if next_count == 0:
+        return json.dumps({"next_count": next_count})
+
+    connection = make_conn()
+    with connection.cursor() as cursor:
+        cursor.execute(f"UPDATE user SET next_count=next_count-1 WHERE id={user_id};")
+        connection.commit()
+    next_count -= 1
 
     # get the word stats of the user
     results = json.loads(get_stats(user_id))
@@ -333,7 +316,7 @@ def next_para(user_id):
             break
         trial_count += 1
     set_next_para(user_id, paragraph_id)
-    return json.dumps(results)
+    return json.dumps({"next_count": next_count})
 
 
 if __name__ == "__main__":

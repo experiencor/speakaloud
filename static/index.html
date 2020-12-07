@@ -53,7 +53,7 @@
             </div>
         </div>
         <div align="center" style="width: 900px; display: table-row;">
-            <button onclick="nextPara()" class="btn btn-primary btn-sm" type="button" style="width: 80px; margin-bottom: 10px; margin-left: 5px;">Đổi Đoạn</button>
+            <button id="change_para" onclick="nextPara()" class="btn btn-primary btn-sm" type="button" style="width: 80px; margin-bottom: 10px; margin-left: 5px;">Đổi Đoạn</button>
         </div>
         <div align="center" style="width: 900px; display: table-row;">
             <div align="center" style="width: 900px; display: table-cell;"> 
@@ -76,6 +76,7 @@ var user_name = getCookie("user_name");
 var user_id = null;
 var paragraph_id = null;
 var session_id = null;
+var next_count = null;
 var paragraph = [];
 var ipa = [];
 var current_ipa = "";
@@ -136,8 +137,9 @@ async function startItAll() {
     user_id = await getUser(user_name);
     setCookie("user_id", user_id);
 
-    results = await getParagraphForUser(user_id);
-    paragraph_id = results["paragraph_id"]
+    results = await getUserProfile(user_id);
+    next_count = results["next_count"];
+    paragraph_id = results["paragraph_id"];
     paragraph = results["content"].split(" ");
     ipa = results["ipa"].split(" ");
     min_completion_time = results["min_completion_time"]
@@ -376,9 +378,16 @@ function reset(){
     session_id = generateRandomString(16);
 
     document.getElementById('paragraph').innerHTML = "\u200B" + paragraph.join(" ")
+
+    document.getElementById('change_para').innerHTML = "Đổi Đoạn: " + next_count
+    if (next_count == 0){
+        document.getElementById("change_para").disabled = true;
+    } else {
+        document.getElementById("change_para").disabled = false;
+    }
     curr_interim = ""
     setTimeout(triggerContextMenu, 10);  
-    setTimeout(triggerContextMenu, 10);  
+    setTimeout(triggerContextMenu, 10);
 
     stopWatch = new StopWatch();
     started = setInterval(clockRunning, 100);  
@@ -500,19 +509,6 @@ document.addEventListener("keyup", function(e) {
     triggerContextMenu()
 });
 
-function prevPara() {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "prev_para/" + String(user_id), true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            startItAll();
-        }
-    }
-    xhr.send();    
-}
-
 function nextPara() {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "next_para/" + String(user_id), true);
@@ -520,6 +516,8 @@ function nextPara() {
 
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
+            var jsonContent = JSON.parse(xhr.responseText);
+            next_count = jsonContent["next_count"];
             startItAll();
         }
     }

@@ -75,10 +75,10 @@ function getUser(user_name) {
     });
 }
 
-function getParagraphForUser(user_id) {
+function getUserProfile(user_id) {
     return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", "get_paragraph_for_user/" + user_id, true);
+        xhr.open("POST", "get_user_profile/" + user_id, true);
         xhr.setRequestHeader("Content-Type", "application/json");
 
         xhr.onreadystatechange = function () {
