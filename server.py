@@ -27,6 +27,7 @@ logger.setLevel(logging.DEBUG)
 app.config["LOG_TYPE"] = "CSV"
 Log(app)
 es = Elasticsearch()
+excluded_words = set(["courageously", "unexamined", "you're", "thirty", "shoeshine"])
 
 
 # utility functions
@@ -191,6 +192,7 @@ def get_stats(user_id):
         combined_words["word"] = combined_words.word.map(normalize)
         word_stats = combined_words.groupby("word")["duration"].mean().reset_index()
         word_stats = word_stats.sort_values("duration", ascending=False)
+        word_stats = word_stats[~word_stats.word.isin(excluded_words)]
 
         for _, row in word_stats.head(20).iterrows():
             results["word_stats"] += [[row["word"], row["duration"]]]
