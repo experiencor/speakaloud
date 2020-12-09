@@ -248,7 +248,7 @@ async function startItAll() {
                 reset();
             } else {
                 is_building_final_sent = false
-                word = paragraph[curr_paragraph_indx]
+                word = paragraph[curr_paragraph_indx].toLowerCase().replace(/[^a-z0-9]|/mg, "")
                 stopWatch.stop()
                 logFinalSent(user_id, 
                              paragraph_id, 
