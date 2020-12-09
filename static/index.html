@@ -72,6 +72,7 @@
 <script type="text/javascript" src="js/main.js"></script>
 <script type="text/javascript">
 // global variables
+var excluded_words = new Set(["courageously", "unexamined", "you're", "thirty", "shoeshine"])
 var user_name = getCookie("user_name");
 var user_id = null;
 var paragraph_id = null;
@@ -198,9 +199,8 @@ async function startItAll() {
                          duration, 
                          completed_at);
 
-                cursorPosition += 1
                 curr_paragraph_indx += 1
-
+                findNextWord();
                 curr_interim_indx = i + 1
 
                 $('#paragraph').html('<span class="read_para">' + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</span> " +
@@ -266,6 +266,18 @@ async function startItAll() {
     if (!recognizing) {
         recognition.start()
     }    
+}
+
+function findNextWord() {
+    while (curr_paragraph_indx < paragraph.length) {
+        word = paragraph[curr_paragraph_indx]
+
+        if ((norm(word) !== "") && !excluded_words.has(word)) {
+            break
+        } else {
+            curr_paragraph_indx += 1
+        }
+    }
 }
 
 function resetRecognition() {
@@ -371,9 +383,9 @@ function reset(){
     if (transcript !== "" & is_building_final_sent === true) {
         console.log(transcript)
     }
-    cursorPosition = 0
     is_building_final_sent = false
     curr_paragraph_indx = 0;
+    findNextWord();
     current_ipa = ipa[curr_paragraph_indx]
     session_id = generateRandomString(16);
 
