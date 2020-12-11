@@ -292,16 +292,27 @@ def next_para(user_id):
                     select_words += [results["word_stats"][i][0]]
                 else:
                     un_select_words += [results["word_stats"][i][0]]
-            query = "(" + " ".join(select_words) + ") AND (level: " + str(level) + ")"
+            query = " ".join(select_words)
             #query = "(" + " ".join(select_words) + ") AND !(" + " ".join(un_select_words) + ") AND (level: " + str(level) + ")"
         print(query)
 
         res = es.search(index="paragraph", body={
             "size": 10,
             "query": {
-                "query_string": {
-                    "query": query,
-                    "default_field": "content"
+                "bool": {
+                    "must": {
+                        "match": {
+                            "content": {
+                                "query": query,
+                                "fuzziness": "AUTO"
+                            }
+                        }
+                    },
+                    "filter": {
+                        "term": {
+                            "level": level
+                        }
+                    }
                 }
             }
         })
