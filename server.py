@@ -278,7 +278,7 @@ def next_para(user_id):
     paragraph_id = None
     while trial_count < max_tries:
         if trial_count == max_tries-1 or not results["word_stats"]:
-            query = f"(level: {level})"
+            query = f"*"
         else:
             probs = np.array([prob for [_, prob] in results["word_stats"][:top]])
             top = min(top, len(probs))
@@ -296,26 +296,36 @@ def next_para(user_id):
             #query = "(" + " ".join(select_words) + ") AND !(" + " ".join(un_select_words) + ") AND (level: " + str(level) + ")"
         print(query)
 
-        res = es.search(index="paragraph", body={
-            "size": 10,
-            "query": {
-                "bool": {
-                    "must": {
-                        "match": {
-                            "content": {
-                                "query": query,
-                                "fuzziness": "AUTO"
+        if query != "*":
+            res = es.search(index="paragraph", body={
+                "size": 10,
+                "query": {
+                    "bool": {
+                        "must": {
+                            "match": {
+                                "content": {
+                                    "query": query,
+                                    "fuzziness": "AUTO"
+                                }
                             }
-                        }
-                    },
-                    "filter": {
-                        "term": {
-                            "level": level
+                        },
+                        "filter": {
+                            "term": {
+                                "level": level
+                            }
                         }
                     }
                 }
-            }
-        })
+            })
+        else:
+            res = es.search(index="paragraph", body={
+                "size": 10,
+                "query": {
+                    "query_string": {
+                        "query": f"(level: {level})",
+                    }
+                }
+            })
         
         if (res["hits"]["hits"]):
             paragraph_ids = [int(paragraph["_id"]) for paragraph in res["hits"]["hits"] if int(paragraph["_id"]) != next_paragraph_id]
@@ -328,6 +338,7 @@ def next_para(user_id):
                 paragraph_id = np.random.choice(paragraph_ids, p=scores)
             break
         trial_count += 1
+
     set_next_para(user_id, paragraph_id)
     return json.dumps({"next_count": next_count})
 
