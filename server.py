@@ -158,9 +158,9 @@ def get_stats(user_id):
             "duration": row["duration"].mean(), 
             "word_count": len(row)
         })).reset_index()
-        daily_stats.sort_values("date", inplace=True, ascending=False)
+        daily_stats.sort_values("date", inplace=True)
 
-        for _, row in daily_stats.head(20).iterrows():
+        for _, row in daily_stats.tail(20).iterrows():
             results["daily_stats"] += [[row["date"], row["duration"], row["word_count"]]]
 
         # compute word statistics
