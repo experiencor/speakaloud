@@ -248,7 +248,7 @@ async function startItAll() {
                 reset();
             } else {
                 is_building_final_sent = false
-                word = paragraph[curr_paragraph_indx].toLowerCase().replace(/[^a-z0-9]|/mg, "")
+                word = paragraph[curr_paragraph_indx]
                 stopWatch.stop()
                 logFinalSent(user_id, 
                              paragraph_id, 
@@ -318,7 +318,7 @@ function logEvent(user_id, paragraph_id, session_id, word_index, word, paragraph
                                "paragraph_id": paragraph_id, 
                                "session_id": session_id, 
                                "word_index": word_index, 
-                               "word": word, 
+                               "word": word.toLowerCase().replace(/[^a-z0-9]|/mg, ""), 
                                "paragraph_length": paragraph_length,
                                "duration": duration, 
                                "completed_at": completed_at})
@@ -335,7 +335,7 @@ function logFinalSent(user_id, paragraph_id, session_id, sentence, word_index, w
                                "paragraph_id": paragraph_id, 
                                "sentence": sentence, 
                                "word_index": word_index, 
-                               "word": word, 
+                               "word": word.toLowerCase().replace(/[^a-z0-9]|/mg, ""), 
                                "started_at": started_at,
                                "completed_at": completed_at})
     xhr.onreadystatechange = function () {
