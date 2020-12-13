@@ -79,11 +79,13 @@ var paragraph_id = null;
 var session_id = null;
 var next_count = null;
 var paragraph = [];
+var norm_para = [];
 var ipa = [];
 var current_ipa = "";
 var curr_paragraph_indx = 0;
 var curr_interim_indx = 0;
 var curr_interim = ""
+var suggestionList = null
 
 var stopWatch = new StopWatch();
 var started = null;
@@ -102,23 +104,23 @@ if (!('webkitSpeechRecognition' in window)) {
     recognition.interimResults = true;
 
     $(document).ready(function() {
-    $('#paragraph').textcomplete([
-        {
-            // #3 - Rgular experession used to trigger search
-            match: "",
+        $('#paragraph').textcomplete([
+            {
+                // #3 - Rgular experession used to trigger search
+                match: "",
 
-            // #4 - Function called at every new keystroke
-            search: function(query, callback) {
-                callback([{name: "/" + current_ipa + "/"}, {name: curr_interim}])
-            },
+                // #4 - Function called at every new keystroke
+                search: function(query, callback) {
+                    callback([{name: "/" + current_ipa + "/"}, {name: curr_interim}])
+                },
 
-            // #5 - Template used to display each result obtained by the Algolia API
-            template: function (hit) {
-                return hit.name;
-            },
-        }
-    ]);
-    });
+                // #5 - Template used to display each result obtained by the Algolia API
+                template: function (hit) {
+                    return hit.name;
+                },
+            }
+        ]);
+    });    
 
     $(document).ready(function(){
         $("#paragraph").on("keypress", function(e) {
@@ -142,6 +144,7 @@ async function startItAll() {
     next_count = results["next_count"];
     paragraph_id = results["paragraph_id"];
     paragraph = results["content"].split(" ");
+    norm_para = paragraph.map(word => norm(word))
     ipa = results["ipa"].split(" ");
     min_completion_time = results["min_completion_time"]
 
@@ -186,8 +189,7 @@ async function startItAll() {
         words = transcript.trim().split(" ")
         i = curr_interim_indx
         while (i < words.length) {
-            if ((curr_paragraph_indx < paragraph.length) && 
-                (norm(words[i].toLowerCase()) == norm(paragraph[curr_paragraph_indx]))) {
+            if ((curr_paragraph_indx < paragraph.length) && (norm(words[i].toLowerCase()) == norm_para[curr_paragraph_indx])) {
                 [duration, completed_at] = stopWatch.getDuration();
 
                 logEvent(user_id, 
@@ -216,11 +218,13 @@ async function startItAll() {
         }
 
         curr_interim = words.slice(curr_interim_indx).join(" ")
-        suggestionList = $("#textcomplete-dropdown-1")
-        if (suggestionList.css("display") == "none") {
+        if (suggestionList === null) {
+            suggestionList = document.getElementById("textcomplete-dropdown-1")
+        }
+        if (suggestionList.style.display == "none") {
             triggerContextMenu()
         } else {
-            interim = suggestionList.children()[1]
+            interim = suggestionList.children[1]
             interim.innerHTML = "<a>" + curr_interim + "</a>"
         }
 
@@ -402,7 +406,7 @@ function reset(){
     setTimeout(triggerContextMenu, 10);
 
     stopWatch = new StopWatch();
-    started = setInterval(clockRunning, 100);  
+    started = setInterval(clockRunning, 200);  
 
     recognition.stop()
 }
