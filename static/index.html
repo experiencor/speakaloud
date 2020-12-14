@@ -72,7 +72,7 @@
 <script type="text/javascript" src="js/main.js"></script>
 <script type="text/javascript">
 // global variables
-var excluded_words = new Set(["courageously", "unexamined", "you're", "thirty", "shoeshine"])
+var excluded_words = new Set(["courageously", "unexamined", "youre", "thirty", "shoeshine"])
 var user_name = getCookie("user_name");
 var user_id = null;
 var paragraph_id = null;
@@ -273,10 +273,10 @@ async function startItAll() {
 }
 
 function findNextWord() {
-    while (curr_paragraph_indx < paragraph.length) {
-        word = paragraph[curr_paragraph_indx]
+    while (curr_paragraph_indx < norm_para.length) {
+        word = norm_para[curr_paragraph_indx]
 
-        if ((norm(word) !== "") && !excluded_words.has(word)) {
+        if ((word !== "") && !excluded_words.has(word)) {
             break
         } else {
             curr_paragraph_indx += 1
