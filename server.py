@@ -27,7 +27,7 @@ logger.setLevel(logging.DEBUG)
 app.config["LOG_TYPE"] = "CSV"
 Log(app)
 es = Elasticsearch()
-excluded_words = set(["courageously", "unexamined", "you're", "thirty", "shoeshine", "confusedly", "heaped", "hummocky", "hemmed", "wriggled"])
+excluded_words = set(["courageously", "unexamined", "you're", "thirty", "shoeshine", "confusedly", "heaped", "hummocky", "hemmed", "wriggled", "hopped", "waggled"])
 
 
 # utility functions
@@ -326,7 +326,7 @@ def next_para(user_id):
                     }
                 }
             })
-        
+
         if (res["hits"]["hits"]):
             paragraph_ids = [int(paragraph["_id"]) for paragraph in res["hits"]["hits"] if int(paragraph["_id"]) != next_paragraph_id]
             scores = [float(paragraph["_score"]) for paragraph in res["hits"]["hits"] if int(paragraph["_id"]) != next_paragraph_id]
