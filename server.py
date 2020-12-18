@@ -27,7 +27,7 @@ logger.setLevel(logging.DEBUG)
 app.config["LOG_TYPE"] = "CSV"
 Log(app)
 es = Elasticsearch()
-excluded_words = set(["courageously", "unexamined", "you're", "thirty", "shoeshine", "confusedly", "heaped", "hummocky", "hemmed", "wriggled", "hopped", "waggled"])
+excluded_words = set(["courageously", "unexamined", "you're", "thirty", "shoeshine", "confusedly", "heaped", "hummocky", "hemmed", "wriggled", "hopped", "waggled", "oars", "humped"])
 
 
 # utility functions
