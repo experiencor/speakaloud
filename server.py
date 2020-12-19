@@ -9,12 +9,14 @@ import numpy as np
 import pymysql.cursors
 import datetime
 import time
-import regex
+import regex as re
 import base64
 import pandas as pd
 from elasticsearch import Elasticsearch
 from dateutil import parser
 from flask_web_log import Log
+from pysle import isletool
+from nltk.stem.snowball import SnowballStemmer
 
 # set up the app
 app = Flask(__name__, static_url_path='')
@@ -29,6 +31,25 @@ Log(app)
 es = Elasticsearch()
 excluded_words = set(["courageously", "unexamined", "you're", "thirty", "shoeshine", "confusedly", "heaped", "hummocky", "hemmed", "wriggled", "hopped", "waggled", "oars", "humped", "heaved", "wintry"])
 
+isleDict = isletool.LexicalTool('ISLEdict.txt')
+standard_mapping = {
+    "ɹ": "r",
+    "u": "uː",
+    "i": "iː",
+    "ɛɹ": "ɛ:",    
+    "ɝ": "əː",
+    "ɚ": "ə",
+    "ɚɹ": "əː",
+    "ɔ": "ɔː",
+    "ɔn": "ɔn",
+    "ɔi": "ɔi",
+    "ɔɹ": "ɔ:",
+    "ɑ": "ɒ",
+    "ɑɹ": "ɑ:",
+    "ɑɪ": "ɑɪ",
+    "ei": "ei"
+}
+stemmer = SnowballStemmer(language='english')
 
 # utility functions
 def make_conn():
@@ -41,9 +62,54 @@ def make_conn():
 
 
 def normalize(word):
+    word = re.sub("^[^a-zA-Z0-9]*", "", word)
+    word = re.sub("[^a-zA-Z0-9]*$", "", word)
     if word in ["I", "I'm"]:
         return word
-    return regex.sub("[,\.!]", "", word).lower()
+    return word.lower()
+
+
+def transcribe(word, original=False):
+    word = normalize(word)
+    if word not in isleDict.data:
+        return []
+    res = []
+    for ipa, _, _ in isleDict.lookup(word)[0]:
+        if original:
+            res += ["".join(["".join(sound) for sound in ipa])]
+        else:
+            all_sound = ""
+            for sound in ipa:
+                sound = "".join(sound)
+                i, standard_ipa = 0, ""
+                while i < len(sound):
+                    if sound[i:i+2] in standard_mapping:
+                        standard_ipa += standard_mapping[sound[i:i+2]]
+                        i += 2
+                    elif sound[i:i+1] in standard_mapping:
+                        standard_ipa += standard_mapping[sound[i:i+1]]
+                        i += 1
+                    else:
+                        standard_ipa += sound[i]
+                        i += 1
+                all_sound += standard_ipa
+            if all_sound.endswith("iː"):
+                all_sound = all_sound[:-1]
+            res += [all_sound]
+    return res
+
+
+def stem(word, original=False):
+    word = normalize(word)
+    root = stemmer.stem(word)
+    if original:
+        return root
+    res = ""
+    for a,b in zip(root, word):
+        if a != b:
+            break
+        res += a
+    return res
 
 
 def generate_random_string(length):
@@ -101,8 +167,10 @@ def get_user_profile(user_id):
 
         cursor.execute(f"SELECT * FROM paragraph WHERE id={paragraph_id} LIMIT 1;")
         result = cursor.fetchone()
-        content = result["content"]
-        ipa = decode64(result["ipa"])
+        words = result["content"].split()      
+        ipas = [transcribe(word) for word in words]
+        stems = [stem(word) for word in words]
+        print(stems)
 
         cursor.execute(f"""SELECT min(completed_at) as min_completion_time FROM event WHERE 
                            paragraph_id={paragraph_id} AND word_index=(paragraph_length-1) LIMIT 1;""")
@@ -114,7 +182,7 @@ def get_user_profile(user_id):
             min_completion_time = result['min_completion_time']
 
         connection.commit()
-    return json.dumps({"next_count": next_count, "paragraph_id": paragraph_id, "content": content, "ipa": ipa, "min_completion_time": min_completion_time})
+    return json.dumps({"next_count": next_count, "paragraph_id": paragraph_id, "words": words, "ipas": ipas, "stems": stems, "min_completion_time": min_completion_time})
 
 
 @app.route('/get_history/<user_id>/<paragraph_id>', methods=['POST'])
@@ -225,18 +293,6 @@ def log_final_sent():
                        f"VALUES ({user_id}, {paragraph_id}, \"{session_id}\", \"{sentence}\", {word_index}, \"{word}\", {started_at}, {completed_at})")
         connection.commit()
     return "done"
-
-
-@app.route('/transcribe/<word>', methods=['POST'])  
-def transcribe(word):
-    response = requests.post(
-        "https://www.phonetizer.com/phonetizer/default/call/jsonrpc?nocache=1605357656222",
-        data = '{"service":"", "method":"transcribe", "id":5, "params":["' + word + '", "British", false]}'
-    )
-
-    soup = BeautifulSoup(json.loads(response.content)["result"], features="html.parser")
-    ipa = soup.get_text().strip().split("\n")[1]
-    return json.dumps({"ipa": ipa})
 
 
 def set_next_para(user_id, paragraph_id):

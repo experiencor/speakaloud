@@ -79,7 +79,6 @@ var paragraph_id = null;
 var session_id = null;
 var next_count = null;
 var paragraph = [];
-var norm_para = [];
 var ipa = [];
 var current_ipa = "";
 var curr_paragraph_indx = 0;
@@ -111,7 +110,7 @@ if (!('webkitSpeechRecognition' in window)) {
 
                 // #4 - Function called at every new keystroke
                 search: function(query, callback) {
-                    callback([{name: "/" + current_ipa + "/"}, {name: curr_interim}])
+                    callback([{name: current_ipa}, {name: curr_interim}])
                 },
 
                 // #5 - Template used to display each result obtained by the Algolia API
@@ -143,9 +142,10 @@ async function startItAll() {
     results = await getUserProfile(user_id);
     next_count = results["next_count"];
     paragraph_id = results["paragraph_id"];
-    paragraph = results["content"].split(" ");
-    norm_para = paragraph.map(word => norm(word))
-    ipa = results["ipa"].split(" ");
+    paragraph = results["words"];
+    norm_para = paragraph.map(word => normalize(word))
+    ipa = results["ipas"];
+    stems = results["stems"];
     min_completion_time = results["min_completion_time"]
 
     reset();
@@ -189,7 +189,12 @@ async function startItAll() {
         words = transcript.trim().split(" ")
         i = curr_interim_indx
         while (i < words.length) {
-            if ((curr_paragraph_indx < paragraph.length) && (norm(words[i].toLowerCase()) == norm_para[curr_paragraph_indx])) {
+            if ((curr_paragraph_indx < paragraph.length) && 
+                //letItPass(words[i].toLowerCase(), 
+                //          norm_para[curr_paragraph_indx], 
+                //          stems[curr_paragraph_indx], 
+                //          stopWatch.getDuration()[0])) {
+                words[i].toLowerCase() == norm_para[curr_paragraph_indx]) {
                 [duration, completed_at] = stopWatch.getDuration();
 
                 logEvent(user_id, 
@@ -208,11 +213,8 @@ async function startItAll() {
                 $('#paragraph').html('<span class="read_para">' + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</span> " +
                     paragraph.slice(curr_paragraph_indx).join(" "))
                 
-                if (curr_paragraph_indx < paragraph.length) {
-                    current_ipa = ipa[curr_paragraph_indx]
-                }
-
-                triggerContextMenu()
+                setIPA();
+                triggerContextMenu();
             }
             i += 1
         }
@@ -272,10 +274,36 @@ async function startItAll() {
     }    
 }
 
-function findNextWord() {
-    while (curr_paragraph_indx < norm_para.length) {
-        word = norm_para[curr_paragraph_indx]
+function letItPass(spoken_word, norm_word, stem_word, duration) {
+    if (duration <= 10000) {
+        return spoken_word === norm_word
+    } else if (duration <= 20000) {
+        return (spoken_word.slice(0, stem_word.length) == stem_word)
+    } else {
+        duration = Math.min(duration, 60000)
+        threshold = (100000 - duration) / 80000
+        if (partiallyCompare(spoken_word, norm_word) >= threshold) {
+            return true
+        } else {
+            return false
+        }
+    }
+}
 
+function partiallyCompare(word1, word2) {
+    var [i, j] = [0, 0];
+    while ((i < word1.length) & (j < word2.length)) {
+        if (word1.charAt(i) === word2.charAt(j)) {
+            i += 1
+        }
+        j += 1
+    }
+    return i / word1.length
+}
+
+function findNextWord() {
+    while (curr_paragraph_indx < stems.length) {
+        word = stems[curr_paragraph_indx]
         if ((word !== "") && !excluded_words.has(word)) {
             break
         } else {
@@ -322,7 +350,7 @@ function logEvent(user_id, paragraph_id, session_id, word_index, word, paragraph
                                "paragraph_id": paragraph_id, 
                                "session_id": session_id, 
                                "word_index": word_index, 
-                               "word": word.toLowerCase().replace(/[^a-z0-9]|/mg, ""), 
+                               "word": normalize(word),
                                "paragraph_length": paragraph_length,
                                "duration": duration, 
                                "completed_at": completed_at})
@@ -339,7 +367,7 @@ function logFinalSent(user_id, paragraph_id, session_id, sentence, word_index, w
                                "paragraph_id": paragraph_id, 
                                "sentence": sentence, 
                                "word_index": word_index, 
-                               "word": word.toLowerCase().replace(/[^a-z0-9]|/mg, ""), 
+                               "word": normalize(word),
                                "started_at": started_at,
                                "completed_at": completed_at})
     xhr.onreadystatechange = function () {
@@ -352,11 +380,10 @@ function logFinalSent(user_id, paragraph_id, session_id, sentence, word_index, w
     xhr.send(data);
 }
 
-function norm(word) {
-    word = word.toLowerCase().replace(/[^a-z0-9]|/mg, "")
-    if (word.slice(-1) === "s") {
-        word = word.slice(0, -1);
-    }
+function normalize(word) {
+    word = word.toLowerCase()
+    word = word.replace(/^[^a-z0-9]*|/mg, "")
+    word = word.replace(/[^a-z0-9]*$|/mg, "")
     if (word === "center") {
         word = "centre";
     }
@@ -368,7 +395,7 @@ function norm(word) {
 
 function readit() {
     if (curr_paragraph_indx < paragraph.length) {
-        var msg = new SpeechSynthesisUtterance(norm(paragraph[curr_paragraph_indx]));
+        var msg = new SpeechSynthesisUtterance(normalize(paragraph[curr_paragraph_indx]));
         window.speechSynthesis.speak(msg);
     }
 }
@@ -386,6 +413,20 @@ function clockRunning(){
     document.getElementsByClassName("milliseconds")[0].innerHTML = ms > 99 ? ms : ms > 9 ? "0" + ms : "00" + ms
 };
 
+function setIPA() {
+    if (curr_paragraph_indx < ipa.length) {
+        var choices = ipa[curr_paragraph_indx];
+        if (choices == []) {
+            current_ipa = "/" + paragraph[curr_paragraph_indx] + "/"
+        } else {
+            current_ipa = "/" + choices[0] + "/"
+            for (i = 1; i < choices.length; i++) {
+                current_ipa += ", " + "/" + choices[i] + "/"
+            }
+        }
+    }
+}
+
 function reset(){
     if (transcript !== "" & is_building_final_sent === true) {
         console.log(transcript)
@@ -393,7 +434,7 @@ function reset(){
     is_building_final_sent = false
     curr_paragraph_indx = 0;
     findNextWord();
-    current_ipa = ipa[curr_paragraph_indx]
+    setIPA();
     session_id = generateRandomString(16);
 
     document.getElementById('paragraph').innerHTML = "\u200B" + paragraph.join(" ")
