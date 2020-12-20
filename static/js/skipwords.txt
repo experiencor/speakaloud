@@ -15,7 +15,7 @@ whither
 n
 adj
 USAGM
-ISIS 
+isis 
 v
 thither
 fiftieth
