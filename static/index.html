@@ -72,19 +72,25 @@
 <script type="text/javascript" src="js/main.js"></script>
 <script type="text/javascript">
 // global variables
-var excluded_words = new Set(["courageously", "unexamined", "youre", "thirty", "shoeshine", "confusedly", "heaped", "hummocky", "hemmed", "wriggled", "hopped", "waggled", "ellume", "oar", "o", "humped", "heaved", "wintry"])
+var EXACT_MATCH = 5000
+var STEM_MATCH = 10000
+var PARTIAL_MATCH = 15000
+
 var user_name = getCookie("user_name");
 var user_id = null;
 var paragraph_id = null;
 var session_id = null;
 var next_count = null;
+var skipwords = null;
 var paragraph = [];
+var wordMapping = null;
 var ipa = [];
 var current_ipa = "";
 var curr_paragraph_indx = 0;
 var curr_interim_indx = 0;
 var curr_interim = ""
 var suggestionList = null
+var manual_reset = false
 
 var stopWatch = new StopWatch();
 var started = null;
@@ -142,16 +148,18 @@ async function startItAll() {
     results = await getUserProfile(user_id);
     next_count = results["next_count"];
     paragraph_id = results["paragraph_id"];
+    wordMapping = results["word_mapping"].reduce(function(map, obj) { map[obj[0]] = obj[1]; return map }, {})
     paragraph = results["words"];
     norm_para = paragraph.map(word => normalize(word))
     ipa = results["ipas"];
     stems = results["stems"];
+    skipwords = new Set(results["skipwords"]);
     min_completion_time = results["min_completion_time"]
 
     reset();
 
     google.charts.load('current', {'packages':['corechart']});
-    google.charts.setOnLoadCallback(drawBarChart);
+    google.charts.setOnLoadCallback(drawReadingHistory);
 
     recognition.onstart = function () {
         recognizing = true;
@@ -190,11 +198,10 @@ async function startItAll() {
         i = curr_interim_indx
         while (i < words.length) {
             if ((curr_paragraph_indx < paragraph.length) && 
-                //letItPass(words[i].toLowerCase(), 
-                //          norm_para[curr_paragraph_indx], 
-                //          stems[curr_paragraph_indx], 
-                //          stopWatch.getDuration()[0])) {
-                words[i].toLowerCase() == norm_para[curr_paragraph_indx]) {
+                letItPass(normalize(words[i]), 
+                          norm_para[curr_paragraph_indx], 
+                          stems[curr_paragraph_indx], 
+                          stopWatch.getDuration(false)[0])) {
                 [duration, completed_at] = stopWatch.getDuration();
 
                 logEvent(user_id, 
@@ -230,12 +237,13 @@ async function startItAll() {
             interim.innerHTML = "<a>" + curr_interim + "</a>"
         }
 
-        if (isFinal | (curr_paragraph_indx == paragraph.length)) {
-            if (isFinal) {
-                curr_interim_indx = 0
-                curr_interim = ""
-                triggerContextMenu()
-            }
+        if (curr_paragraph_indx == paragraph.length) {
+            recognition.stop()
+        }
+
+        if (isFinal) {
+            curr_interim_indx = 0
+            curr_interim = ""
 
             completed_at = stopWatch.getTime()
             var word = "";
@@ -250,7 +258,7 @@ async function startItAll() {
                              word, 
                              final_sent_started_at, 
                              completed_at, 
-                             drawBarChart)
+                             drawReadingHistory)
                 reset();
             } else {
                 is_building_final_sent = false
@@ -264,6 +272,10 @@ async function startItAll() {
                              word, 
                              final_sent_started_at, 
                              completed_at)
+                if (manual_reset) {
+                    manual_reset = false;
+                    reset();
+                }
             }
             
         }
@@ -275,36 +287,22 @@ async function startItAll() {
 }
 
 function letItPass(spoken_word, norm_word, stem_word, duration) {
-    if (duration <= 10000) {
+    if (duration <= EXACT_MATCH) {
         return spoken_word === norm_word
-    } else if (duration <= 20000) {
+    } else if (duration <= STEM_MATCH) {
         return (spoken_word.slice(0, stem_word.length) == stem_word)
     } else {
-        duration = Math.min(duration, 60000)
-        threshold = (100000 - duration) / 80000
-        if (partiallyCompare(spoken_word, norm_word) >= threshold) {
-            return true
-        } else {
-            return false
-        }
+        duration = Math.min(duration, PARTIAL_MATCH)
+        threshold = (2 * PARTIAL_MATCH - STEM_MATCH - duration) / 2 / (PARTIAL_MATCH - STEM_MATCH)
+        similarity = levenshteinSimilarity(spoken_word, norm_word)
+        return similarity >= threshold
     }
-}
-
-function partiallyCompare(word1, word2) {
-    var [i, j] = [0, 0];
-    while ((i < word1.length) & (j < word2.length)) {
-        if (word1.charAt(i) === word2.charAt(j)) {
-            i += 1
-        }
-        j += 1
-    }
-    return i / word1.length
 }
 
 function findNextWord() {
     while (curr_paragraph_indx < stems.length) {
         word = stems[curr_paragraph_indx]
-        if ((word !== "") && !excluded_words.has(word)) {
+        if ((word !== "") && !skipwords.has(word)) {
             break
         } else {
             curr_paragraph_indx += 1
@@ -382,20 +380,18 @@ function logFinalSent(user_id, paragraph_id, session_id, sentence, word_index, w
 
 function normalize(word) {
     word = word.toLowerCase()
-    word = word.replace(/^[^a-z0-9]*|/mg, "")
-    word = word.replace(/[^a-z0-9]*$|/mg, "")
-    if (word === "center") {
-        word = "centre";
-    }
-    if (word === "neighborhood") {
-        word = "neighbourhood";
+    word = word.replace(/^[^a-zA-Z0-9]*|/mg, "")
+    word = word.replace(/[^a-zA-Z0-9]*$|/mg, "")
+    if (word in wordMapping) {
+        return wordMapping[word]
     }
     return word
 }
 
 function readit() {
     if (curr_paragraph_indx < paragraph.length) {
-        var msg = new SpeechSynthesisUtterance(normalize(paragraph[curr_paragraph_indx]));
+        text = paragraph.slice(curr_paragraph_indx, curr_paragraph_indx+3).join(" ")
+        var msg = new SpeechSynthesisUtterance(text);
         window.speechSynthesis.speak(msg);
     }
 }
@@ -416,7 +412,7 @@ function clockRunning(){
 function setIPA() {
     if (curr_paragraph_indx < ipa.length) {
         var choices = ipa[curr_paragraph_indx];
-        if (choices == []) {
+        if (choices.length === 0) {
             current_ipa = "/" + paragraph[curr_paragraph_indx] + "/"
         } else {
             current_ipa = "/" + choices[0] + "/"
@@ -428,9 +424,6 @@ function setIPA() {
 }
 
 function reset(){
-    if (transcript !== "" & is_building_final_sent === true) {
-        console.log(transcript)
-    }
     is_building_final_sent = false
     curr_paragraph_indx = 0;
     findNextWord();
@@ -438,7 +431,6 @@ function reset(){
     session_id = generateRandomString(16);
 
     document.getElementById('paragraph').innerHTML = "\u200B" + paragraph.join(" ")
-
     document.getElementById('change_para').innerHTML = "Đổi Đoạn: " + next_count
     if (next_count == 0){
         document.getElementById("change_para").disabled = true;
@@ -451,8 +443,6 @@ function reset(){
 
     stopWatch = new StopWatch();
     started = setInterval(clockRunning, 200);  
-
-    recognition.stop()
 }
 
 function triggerContextMenu() {
@@ -474,7 +464,7 @@ function generateRandomString(length) {
     return result;
 }
 
-function drawBarChart() {
+function drawReadingHistory() {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "get_history/" + String(user_id) + "/" + String(paragraph_id), true);
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -488,14 +478,16 @@ function drawBarChart() {
                 return
             }
             
-            rows = [['Time', 'Duration', 'Record Time']]
+            rows = [['Time', 'Duration', { role: 'style' }, 'Record Time']]
             for (var i = 0; i < jsonContent.length; ++i) {
                 row = jsonContent[i]
-                rows.push([String(i+1), row["duration"]/1000, min_completion_time/1000])
+                color = row["no_repetition"] ? "red" : ""
+                console.log(row[2], color, row)
+                rows.push([String(i+1), row["duration"]/1000, color, min_completion_time/1000])
             }
 
             while (rows.length < 10) {
-                rows.push([" ", null, null])
+                rows.push([" ", null, '', null])
             }
 
             var data = new google.visualization.arrayToDataTable(rows);
@@ -545,7 +537,8 @@ document.addEventListener("keydown", function(e) {
 
     if (e.keyCode == 13) {
         e.preventDefault();
-        reset();
+        recognition.stop();
+        manual_reset = true;
     }
 
     if (e.keyCode == 17) {

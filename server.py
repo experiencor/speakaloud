@@ -15,8 +15,7 @@ import pandas as pd
 from elasticsearch import Elasticsearch
 from dateutil import parser
 from flask_web_log import Log
-from pysle import isletool
-from nltk.stem.snowball import SnowballStemmer
+from word_utils import normalize, stem, transcribe, normalize_ipa
 
 # set up the app
 app = Flask(__name__, static_url_path='')
@@ -29,27 +28,9 @@ logger.setLevel(logging.DEBUG)
 app.config["LOG_TYPE"] = "CSV"
 Log(app)
 es = Elasticsearch()
-excluded_words = set(["courageously", "unexamined", "you're", "thirty", "shoeshine", "confusedly", "heaped", "hummocky", "hemmed", "wriggled", "hopped", "waggled", "oars", "humped", "heaved", "wintry"])
-
-isleDict = isletool.LexicalTool('ISLEdict.txt')
-standard_mapping = {
-    "ɹ": "r",
-    "u": "uː",
-    "i": "iː",
-    "ɛɹ": "ɛ:",    
-    "ɝ": "əː",
-    "ɚ": "ə",
-    "ɚɹ": "əː",
-    "ɔ": "ɔː",
-    "ɔn": "ɔn",
-    "ɔi": "ɔi",
-    "ɔɹ": "ɔ:",
-    "ɑ": "ɒ",
-    "ɑɹ": "ɑ:",
-    "ɑɪ": "ɑɪ",
-    "ei": "ei"
-}
-stemmer = SnowballStemmer(language='english')
+skipwords = set(word.strip() for word in open("static/js/skipwords.txt"))
+word_mapping = json.load(open("static/js/word_mapping.json"))
+word_mapping = [[key, val] for key,val in word_mapping.items()]
 
 # utility functions
 def make_conn():
@@ -59,57 +40,6 @@ def make_conn():
                            db='speaktests',
                            charset='utf8mb4',
                            cursorclass=pymysql.cursors.DictCursor)
-
-
-def normalize(word):
-    word = re.sub("^[^a-zA-Z0-9]*", "", word)
-    word = re.sub("[^a-zA-Z0-9]*$", "", word)
-    if word in ["I", "I'm"]:
-        return word
-    return word.lower()
-
-
-def transcribe(word, original=False):
-    word = normalize(word)
-    if word not in isleDict.data:
-        return []
-    res = []
-    for ipa, _, _ in isleDict.lookup(word)[0]:
-        if original:
-            res += ["".join(["".join(sound) for sound in ipa])]
-        else:
-            all_sound = ""
-            for sound in ipa:
-                sound = "".join(sound)
-                i, standard_ipa = 0, ""
-                while i < len(sound):
-                    if sound[i:i+2] in standard_mapping:
-                        standard_ipa += standard_mapping[sound[i:i+2]]
-                        i += 2
-                    elif sound[i:i+1] in standard_mapping:
-                        standard_ipa += standard_mapping[sound[i:i+1]]
-                        i += 1
-                    else:
-                        standard_ipa += sound[i]
-                        i += 1
-                all_sound += standard_ipa
-            if all_sound.endswith("iː"):
-                all_sound = all_sound[:-1]
-            res += [all_sound]
-    return res
-
-
-def stem(word, original=False):
-    word = normalize(word)
-    root = stemmer.stem(word)
-    if original:
-        return root
-    res = ""
-    for a,b in zip(root, word):
-        if a != b:
-            break
-        res += a
-    return res
 
 
 def generate_random_string(length):
@@ -168,9 +98,8 @@ def get_user_profile(user_id):
         cursor.execute(f"SELECT * FROM paragraph WHERE id={paragraph_id} LIMIT 1;")
         result = cursor.fetchone()
         words = result["content"].split()      
-        ipas = [transcribe(word) for word in words]
+        ipas = [["".join(ipa) for ipa in transcribe(word)] for word in words]
         stems = [stem(word) for word in words]
-        print(stems)
 
         cursor.execute(f"""SELECT min(completed_at) as min_completion_time FROM event WHERE 
                            paragraph_id={paragraph_id} AND word_index=(paragraph_length-1) LIMIT 1;""")
@@ -182,7 +111,7 @@ def get_user_profile(user_id):
             min_completion_time = result['min_completion_time']
 
         connection.commit()
-    return json.dumps({"next_count": next_count, "paragraph_id": paragraph_id, "words": words, "ipas": ipas, "stems": stems, "min_completion_time": min_completion_time})
+    return json.dumps({"next_count": next_count, "paragraph_id": paragraph_id, "words": words, "ipas": ipas, "stems": stems, "min_completion_time": min_completion_time, "skipwords": list(skipwords), "word_mapping": word_mapping})
 
 
 @app.route('/get_history/<user_id>/<paragraph_id>', methods=['POST'])
@@ -194,13 +123,28 @@ def get_history(user_id, paragraph_id):
         length = len(paragraph["content"].split())
 
         cursor.execute(
-            f"""SELECT completed_at, created_at FROM event WHERE 
-                user_id={user_id} AND paragraph_id={paragraph_id} AND word_index={length-1}
+            f"""SELECT * FROM final_sent WHERE 
+                user_id={user_id} AND paragraph_id={paragraph_id}
             """
         )
         sessions = pd.DataFrame(cursor.fetchall())
-        sessions.rename(columns={"completed_at": "duration"}, inplace=True)
-        connection.commit()
+
+        if len(sessions) == 0:
+            return "[]"
+        
+        sessions["sent_len"] = sessions.sentence.map(lambda sent: len(sent.split()))
+        sessions = sessions.groupby("session_id").apply(lambda row: pd.Series({
+            "duration": max(row["completed_at"]), 
+            "created_at": max(row["created_at"]), 
+            "word_index": max(row["word_index"]), 
+            "total_len": sum(row["sent_len"])})
+        ).reset_index()
+        sessions = sessions[sessions.word_index == length].copy()
+        sessions["no_repetition"] = sessions.word_index >= sessions.total_len
+
+        del sessions["word_index"]
+        del sessions["total_len"]
+        del sessions["session_id"]
     return json.dumps(list(json.loads(sessions.transpose().to_json()).values()))
 
 
@@ -260,7 +204,7 @@ def get_stats(user_id):
         combined_words["word"] = combined_words.word.map(normalize)
         word_stats = combined_words.groupby("word")["duration"].mean().reset_index()
         word_stats = word_stats.sort_values("duration", ascending=False)
-        word_stats = word_stats[~word_stats.word.isin(excluded_words)]
+        word_stats = word_stats[~word_stats.word.isin(skipwords)]
 
         for _, row in word_stats.head(20).iterrows():
             results["word_stats"] += [[row["word"], row["duration"]]]
@@ -350,21 +294,37 @@ def next_para(user_id):
                     un_select_words += [results["word_stats"][i][0]]
             query = " ".join(select_words)
             #query = "(" + " ".join(select_words) + ") AND !(" + " ".join(un_select_words) + ") AND (level: " + str(level) + ")"
+        morphemes = []
+        for word in query.split():
+            morphemes += [morpheme for ipa in transcribe(word) for morpheme in ipa]
+        morphemes = normalize_ipa(" ".join(morphemes))
         print(query)
+        print(morphemes)
 
         if query != "*":
             res = es.search(index="paragraph", body={
                 "size": 10,
                 "query": {
-                    "bool": {
-                        "must": {
-                            "match": {
+                  "bool": {
+                      "should": 
+                        [
+                            {
+                              "match": {
+                                    "ipa": {
+                                        "query": f"\"{morphemes}\"",
+                                        "fuzziness": "AUTO"
+                                    }
+                                }
+                            },
+                            {
+                              "match": {
                                 "content": {
-                                    "query": query,
-                                    "fuzziness": "AUTO"
+                                        "query": f"\"{query}\"",
+                                        "fuzziness": "AUTO"
+                                    }
                                 }
                             }
-                        },
+                        ],
                         "filter": {
                             "term": {
                                 "level": level
