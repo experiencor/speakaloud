@@ -14,7 +14,8 @@ em
 whither
 n
 adj
-USAGM 
+USAGM
+ISIS 
 v
 thither
 fiftieth
