@@ -302,7 +302,7 @@ function letItPass(spoken_word, norm_word, stem_word, duration) {
 function findNextWord() {
     while (curr_paragraph_indx < norm_para.length) {
         word = norm_para[curr_paragraph_indx]
-        if ((word === "") | skipwords.has(word) | "@" in word) {
+        if ((word === "") | skipwords.has(word) | word.includes("@")) {
             curr_paragraph_indx += 1
         } else {
             break
