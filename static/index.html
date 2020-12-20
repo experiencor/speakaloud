@@ -537,8 +537,12 @@ document.addEventListener("keydown", function(e) {
 
     if (e.keyCode == 13) {
         e.preventDefault();
-        recognition.stop();
-        manual_reset = true;
+        if (is_building_final_sent) {
+            recognition.stop();
+            manual_reset = true;
+        } else {
+            reset();
+        }
     }
 
     if (e.keyCode == 17) {
