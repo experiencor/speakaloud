@@ -12,6 +12,10 @@ waggled
 oars
 em
 whither
+n
+adj
+USAGM 
+v
 thither
 fiftieth
 humped
