@@ -481,8 +481,7 @@ function drawReadingHistory() {
             rows = [['Time', 'Duration', { role: 'style' }, 'Record Time']]
             for (var i = 0; i < jsonContent.length; ++i) {
                 row = jsonContent[i]
-                color = row["no_repetition"] ? "red" : ""
-                console.log(row[2], color, row)
+                color = row["no_repetition"] ? "red" : "";
                 rows.push([String(i+1), row["duration"]/1000, color, min_completion_time/1000])
             }
 

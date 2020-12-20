@@ -141,6 +141,8 @@ def get_history(user_id, paragraph_id):
         ).reset_index()
         sessions = sessions[sessions.word_index == length].copy()
         sessions["no_repetition"] = sessions.word_index >= sessions.total_len
+        sessions.sort_values("created_at")
+        sessions = sessions.tail(20)
 
         del sessions["word_index"]
         del sessions["total_len"]
