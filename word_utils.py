@@ -31,13 +31,13 @@ standard_mapping = {
 }
 
 # from https://simple.wikipedia.org/wiki/Vowel
-vowels = ['ɪ','iː',
-		  'ɛ','ɛː','æ',
-		  'ʊ','uː','ʌ',
-		  'ə','əː',
-		  'ɒ','ɔː',
+vowels = ['ɪ', 'iː',
+		  'ɛ', 'ɛː', 'æ',
+		  'ʊ', 'uː', 'ʌ',
+		  'ə', 'əː',
+		  'ɒ', 'ɔː',
 		  'ɑː',
-		  'eɪ','oʊ','ɑɪ','aʊ','ɔɪ', 'ɪə']
+		  'eɪ','oʊ', 'ɑɪ', 'aʊ', 'ɔɪ', 'ɪə']
 
 # from https://en.wikipedia.org/wiki/English_phonology#Consonants
 consonants = ['p', 'b',
@@ -136,7 +136,7 @@ def stem(word, original=False):
 	return res
 
 
-def stem_para(paragraph, original=False):
+def stem_paragraph(paragraph, original=False):
 	return [stem(word, original) for word in paragraph.split()]
 
 
