@@ -139,7 +139,7 @@ function draw_word_time(word_list) {
                 }
             },
             column: {
-                pointWidth: 20
+                pointWidth: 17
             }
         },
         legend: false
@@ -191,7 +191,7 @@ function draw_word_count(word_list) {
                 }
             },
             column: {
-                pointWidth: 20
+                pointWidth: 17
             }
         },
         legend: false
