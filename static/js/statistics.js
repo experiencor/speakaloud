@@ -182,6 +182,7 @@ async function login() {
         setCookie("user_name", user_name, 14)
 
         user_id = await getUser(user_name)
+        console.log(user_id)
         setCookie("user_id", user_id, 14)
         getStats()
     }
