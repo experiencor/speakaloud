@@ -79,7 +79,7 @@ def create_user(username):
         connection.commit()
     
     with connection.cursor() as cursor:
-        cursor.execute(f"INSERT INTO user (username, next_paragraph_id, level) VALUES (\"{username}\", 25, 1)")
+        cursor.execute(f"INSERT INTO user (username, next_paragraph_id, level) VALUES (\"{username}\", 25, 2)")
         user_id = cursor.lastrowid
         connection.commit()
     return json.dumps({"user_id": user_id})
@@ -97,7 +97,7 @@ def get_user_profile(user_id):
 
         cursor.execute(f"SELECT * FROM paragraph WHERE id={paragraph_id} LIMIT 1;")
         result = cursor.fetchone()
-        words = result["content"].split()      
+        words = result["content"].split()
         ipas = [["".join(ipa) for ipa in transcribe(word)] for word in words]
         stems = [stem(word) for word in words]
 

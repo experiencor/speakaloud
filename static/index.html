@@ -1,584 +1,150 @@
 <!DOCTYPE html>
-<html>
+<!-- saved from url=(0055)file:///home/andy/github/speaktests/static/temp2.2.html -->
+<html lang="en" dir="ltr">
 <head>
+    <title>Luyện Âm</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="msapplication-TileColor" content="#0061da">
+    <meta name="theme-color" content="#1643a3">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="MobileOptimized" content="320">
+    <link rel="stylesheet" href="styles/dashboard.css"/>
+    <link rel="stylesheet" href="styles/hor-boxed.css"/>
     <link rel="stylesheet" href="styles/main.css"/>
     <link rel="stylesheet" href="styles/style.css"/>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script type="text/javascript" src="js/jquery-3.5.1.min.js"></script>
+    <script type="text/javascript" src="js/jquery.textcomplete.min.js"></script>
+    <script type="text/javascript" src="js/utils.js"></script>
+    <script type="text/javascript" src="js/index.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 </head>
-<title> Pronunciation Gym </title>
-<body>
-    <nav class="slidemenu">
-        <!-- Item 1 -->
-        <input type="radio" name="slideItem" id="slide-item-1" class="slide-toggle" checked/>
-        <label for="slide-item-1"><span onclick="window.location.href='gymnastics';">Luyện Tập</span></label>
-
-        <!-- Item 2 -->
-        <input type="radio" name="slideItem" id="slide-item-2" class="slide-toggle"/>
-        <label for="slide-item-2"><span onclick="window.location.href='statistics';">Thống Kê</span></label>
-
-        <!-- Item 3 -->
-        <input type="radio" name="slideItem" id="slide-item-3" class="slide-toggle"/>
-        <label for="slide-item-3"><span onclick="login()">Đăng Nhập</span></label>
-
-        <div class="clear"></div>
-        <!-- Bar -->
-        <div class="slider">
-        <div class="bar"></div>
-        </div>
-    </nav>
-    <div style="width: 100%; display: table;">
-        <div style="display: table-row;" align="center">
-            <div align="center" style="width: 25%; display: table-cell;">
-                <ul class="timer" align="center">
-                    <li> 
-                        <span class="hours">00</span>
-                        <p class="hours_ref">hours</p>
-                    </li>
-                    <li class="seperator">:</li>
-                    <li> 
-                        <span class="minutes">00</span>
-                        <p class="minutes_ref">minutes</p>
-                    </li>
-                    <li class="seperator">:</li>
-                    <li> 
-                        <span class="seconds">00</span>
-                        <p class="seconds_ref">seconds</p>
-                    </li>
-                    <li class="seperator">.</li>
-                    <li> 
-                        <span class="milliseconds">000</span>
-                        <p class="milliseconds_ref">milliseconds</p>
-                    </li>
-                </ul>
+<body class="" data-new-gr-c-s-check-loaded="14.990.0" data-gr-ext-installed="">
+<div class="page">
+    <div class="page-main">
+        <div class="header py-1">
+            <div class="container">
+                <div class="d-flex"><a class="header-brand" href="https://www.spruko.com/demo/viboon/Horizontal-Light-Boxed/index.html"> <img src="./temp2.3_files/logo.png" class="header-brand-img" alt="Viboon logo"> </a>
+                    <div class="d-flex order-lg-2 ml-auto">
+                        <div class="dropdown d-none d-md-flex mt-1">
+                            <a class="nav-link icon full-screen-link"></a>
+                        </div>
+                        <div class="dropdown d-none d-md-flex mt-1 country-selector">
+                            <a href="gymnastics" class="d-flex nav-link pr-0 leading-none">
+                                <span class="avatar avatar-sm mr-1 align-self-center"
+                                      style="background-image: url(temp2.1_files/speaking.png)"></span>
+                                <div><strong class="text-white">Luyện Tập</strong></div>
+                            </a>
+                        </div>
+                        <div class="dropdown d-none d-md-flex mt-1 country-selector">
+                            <a href="statistics" class="d-flex nav-link pr-0 leading-none">
+                                <span class="avatar avatar-sm mr-1 align-self-center"
+                                      style="background-image: url(temp2.3_files/stats.png)"></span>
+                                <div><strong class="text-white">Thống Kê</strong></div>
+                            </a>
+                        </div>
+                        <div class="dropdown mt-1">
+                            <a href="" class="nav-link pr-0 leading-none" data-toggle="dropdown">
+                                <span class="avatar avatar-md brround"
+                                      style="background-image: url(../assets/images/faces/female/25.jpg)"></span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div align="center" style="width: 900px; display: table-row;">
-            <button id="change_para" onclick="nextPara()" class="btn btn-primary btn-sm" type="button" style="width: 80px; margin-bottom: 10px; margin-left: 5px;">Đổi Đoạn</button>
-        </div>
-        <div align="center" style="width: 900px; display: table-row;">
-            <div align="center" style="width: 900px; display: table-cell;"> 
-                <div align="center" id="paragraph" class="form-control" style="width: 950px; height:auto; min-height:10px; max-height:300px; font-size: 25px; display: inline-block; max-width: fit-content;" contenteditable="true"></div>
+        <div class="my-3 my-md-5">
+            <div class="container">
+                <div class="row row-cards">
+                    <div class="col-sm-12 col-lg-3">
+                        <div class="card bg-info card-img-holder text-white">
+                            <div class="card-body" style="padding-top: 1.6rem;">
+                                <div class="d-flex">
+                                      <div>
+                                         <h4 class="font-weight-normal mb-3">Thời Gian</h4>
+                                      </div>
+                                      <div class="ml-auto">
+                                         <span class="pull-right"><h4 class="mb-0">1.12</h4></span>
+                                      </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-12 col-lg-2">
+                        <div class="card card-img-holder text-black">
+                            <div class="card-body" align="center" style="padding-bottom: 0.2rem; padding-top: 0.2rem;">
+                                <h1 class="mb-0" style="font-size:3rem;" id="minutes">00</h1>
+                                <p class="minutes_ref">minutes</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-12 col-lg-2">
+                        <div class="card card-img-holder text-black">
+                            <div class="card-body" align="center" style="padding-bottom: 0.2rem; padding-top: 0.2rem;">
+                                <h1 class="mb-0" style="font-size:3rem;" id="seconds">00</h1>
+                                <p class="seconds_ref">seconds</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-12 col-lg-2">
+                        <div class="card card-img-holder text-black">
+                            <div class="card-body" align="center" style="padding-bottom: 0.2rem; padding-top: 0.2rem;">
+                                <h1 class="mb-0" style="font-size:3rem;" id="milliseconds">000</h1>
+                                <p class="milliseconds_ref">milliseconds</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-12 col-lg-3">
+                        <div class="card bg-info card-img-holder text-white">
+                            <div class="card-body" style="padding-top: 1.6rem;">
+                                <div class="d-flex">
+                                      <div>
+                                         <h4 class="font-weight-normal mb-3">Lượng Từ</h4>
+                                      </div>
+                                      <div class="ml-auto">
+                                         <span class="pull-right"><h4 class="mb-0">7,832</h4></span>
+                                      </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mg-t-20">
+                    <div class="col-12 grid-margin">
+                        <div class="card" style="padding-top: 0px;">
+                            <div class="card-body">
+                                <div class="col" align="center">
+                                    <button id="change_para" onclick="nextPara()" class="btn bg-danger btn-primary btn-sm" type="button"
+                                            style="width: 100px; margin-bottom: 10px; margin-left: 5px;">Đổi Đoạn</button>
+                                </div>
+                                <div align="center">
+                                    <div align="center" id="paragraph" class="form-control"
+                                         style="height:auto; min-height:10px; max-height:300px; font-size: 23px; max-width: fit-content;" contenteditable="true">
+                                        <span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 grid-margin">
+                        <div class="card">
+                            <div class="card-header "><h3 class="card-title ">Lịch Sử Luyện Tập</h3></div>
+                            <div class="">
+                                <div align="center" id="history" style="height: 300px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div align="center" style="margin-top: 10px;">
-        <div align="center" id="history" style="width: 900px; height: 400px;"></div>
-    </div>
+</div>
 </body>
-<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-<script type="text/javascript" src="js/jquery.min.js"></script>
-<script type="text/javascript" src="js/jquery.textcomplete.min.js"></script>
-<script type="text/javascript" src="js/main.js"></script>
-<script type="text/javascript">
-// global variables
-var EXACT_MATCH = 5000
-var STEM_MATCH = 10000
-var PARTIAL_MATCH = 15000
-
-var user_name = getCookie("user_name");
-var user_id = null;
-var paragraph_id = null;
-var session_id = null;
-var next_count = null;
-var skipwords = null;
-var paragraph = [];
-var wordMapping = null;
-var ipa = [];
-var current_ipa = "";
-var curr_paragraph_indx = 0;
-var curr_interim_indx = 0;
-var curr_interim = ""
-var suggestionList = null
-var manual_reset = false
-
-var stopWatch = new StopWatch();
-var started = null;
-var final_sent_started_at = 0
-var transcript = "";
-var is_building_final_sent = false
-
-// entry point to client-side logic
-if (!('webkitSpeechRecognition' in window)) {
-    upgrade();
-} else {
-    var recognition = new window.webkitSpeechRecognition;
-    var recognizing = false;
-    recognition.lang = "en-US"
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    $(document).ready(function() {
-        $('#paragraph').textcomplete([
-            {
-                // #3 - Rgular experession used to trigger search
-                match: "",
-
-                // #4 - Function called at every new keystroke
-                search: function(query, callback) {
-                    callback([{name: current_ipa}, {name: curr_interim}])
-                },
-
-                // #5 - Template used to display each result obtained by the Algolia API
-                template: function (hit) {
-                    return hit.name;
-                },
-            }
-        ]);
-    });    
-
-    $(document).ready(function(){
-        $("#paragraph").on("keypress", function(e) {
-            e.preventDefault();
-        });
-    });
-
-    startItAll()
-}
-
-async function startItAll() {
-    while (user_name === null | user_name === "") {
-        user_name = prompt("Please enter your name:", "");
-    }
-    setCookie("user_name", user_name, 14)
-
-    user_id = await getUser(user_name);
-    setCookie("user_id", user_id);
-
-    results = await getUserProfile(user_id);
-    next_count = results["next_count"];
-    paragraph_id = results["paragraph_id"];
-    wordMapping = results["word_mapping"].reduce(function(map, obj) { map[obj[0]] = obj[1]; return map }, {})
-    paragraph = results["words"];
-    norm_para = paragraph.map(word => normalize(word))
-    ipa = results["ipas"];
-    stems = results["stems"];
-    skipwords = new Set(results["skipwords"]);
-    min_completion_time = results["min_completion_time"]
-
-    reset();
-
-    google.charts.load('current', {'packages':['corechart']});
-    google.charts.setOnLoadCallback(drawReadingHistory);
-
-    recognition.onstart = function () {
-        recognizing = true;
-    };
-
-    recognition.onend = function () {
-        recognizing = false;
-    };
-
-    recognition.onerror = function (event) {
-        recognizing = false;
-    };
-
-    recognition.onend = function() {
-        recognition.start()
-    }
-
-    recognition.onresult = function(event) {
-        if (!is_building_final_sent) {
-            if (!document.hasFocus()) {
-                return
-            }
-            is_building_final_sent = true
-            final_sent_started_at = stopWatch.getTime()
-            stopWatch.start();
-        }
-
-        transcript = ""
-        isFinal = false
-        for (var i = event.resultIndex; i < event.results.length; ++i) {
-            isFinal |= event.results[i].isFinal;
-            transcript += event.results[i][0].transcript;
-        }
-        
-        words = transcript.trim().split(" ")
-        i = curr_interim_indx
-        while (i < words.length) {
-            if ((curr_paragraph_indx < paragraph.length) && 
-                letItPass(normalize(words[i]), 
-                          norm_para[curr_paragraph_indx], 
-                          stems[curr_paragraph_indx], 
-                          stopWatch.getDuration(false)[0])) {
-                [duration, completed_at] = stopWatch.getDuration();
-
-                logEvent(user_id, 
-                         paragraph_id, 
-                         session_id, 
-                         curr_paragraph_indx, 
-                         paragraph[curr_paragraph_indx], 
-                         paragraph.length, 
-                         duration, 
-                         completed_at);
-
-                curr_paragraph_indx += 1
-                findNextWord();
-                curr_interim_indx = i + 1
-
-                $('#paragraph').html('<span class="read_para">' + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</span> " +
-                    paragraph.slice(curr_paragraph_indx).join(" "))
-                
-                setIPA();
-                triggerContextMenu();
-            }
-            i += 1
-        }
-
-        curr_interim = words.slice(curr_interim_indx).join(" ")
-        if (suggestionList === null) {
-            suggestionList = document.getElementById("textcomplete-dropdown-1")
-        }
-        if (suggestionList.style.display == "none") {
-            triggerContextMenu()
-        } else {
-            interim = suggestionList.children[1]
-            interim.innerHTML = "<a>" + curr_interim + "</a>"
-        }
-
-        if (curr_paragraph_indx == paragraph.length) {
-            recognition.stop()
-        }
-
-        if (isFinal) {
-            curr_interim_indx = 0
-            curr_interim = ""
-
-            completed_at = stopWatch.getTime()
-            var word = "";
-            if (curr_paragraph_indx == paragraph.length) {
-                //const ut = new SpeechSynthesisUtterance('Well done!');
-                //speechSynthesis.speak(ut);
-                logFinalSent(user_id, 
-                             paragraph_id, 
-                             session_id, 
-                             transcript, 
-                             curr_paragraph_indx, 
-                             word, 
-                             final_sent_started_at, 
-                             completed_at, 
-                             drawReadingHistory)
-                reset();
-            } else {
-                is_building_final_sent = false
-                word = paragraph[curr_paragraph_indx]
-                stopWatch.stop()
-                logFinalSent(user_id, 
-                             paragraph_id, 
-                             session_id, 
-                             transcript, 
-                             curr_paragraph_indx, 
-                             word, 
-                             final_sent_started_at, 
-                             completed_at)
-                if (manual_reset) {
-                    manual_reset = false;
-                    reset();
-                }
-            }
-            
-        }
-    }
-
-    if (!recognizing) {
-        recognition.start()
-    }    
-}
-
-function letItPass(spoken_word, norm_word, stem_word, duration) {
-    if (duration <= EXACT_MATCH) {
-        return spoken_word === norm_word
-    } else if (duration <= STEM_MATCH) {
-        return (spoken_word.slice(0, stem_word.length) == stem_word)
-    } else {
-        duration = Math.min(duration, PARTIAL_MATCH)
-        threshold = (2 * PARTIAL_MATCH - STEM_MATCH - duration) / 2 / (PARTIAL_MATCH - STEM_MATCH)
-        similarity = levenshteinSimilarity(spoken_word, norm_word)
-        return similarity >= threshold
-    }
-}
-
-function findNextWord() {
-    while (curr_paragraph_indx < norm_para.length) {
-        word = norm_para[curr_paragraph_indx]
-        pronunciation = ipa[curr_paragraph_indx]
-        if ((pronunciation.length == 0) | (word === "") | skipwords.has(word) | word.includes("@")) {
-            curr_paragraph_indx += 1
-        } else {
-            break
-        }
-    }
-}
-
-function resetRecognition() {
-    recognition.stop()
-
-    if (is_building_final_sent) {
-        is_building_final_sent = false
-
-        if (curr_paragraph_indx == paragraph.length) {
-            word = paragraph[curr_paragraph_indx]
-        } else {
-            word = ""
-        }
-
-        completed_at = stopWatch.getTime()
-        stopWatch.stop()
-        logFinalSent(user_id, 
-                     paragraph_id, 
-                     session_id, 
-                     transcript, 
-                     curr_paragraph_indx, 
-                     word, 
-                     final_sent_started_at, 
-                     completed_at)
-
-        curr_interim_indx = 0
-        curr_interim = ""
-        triggerContextMenu()
-    }
-}
-
-function logEvent(user_id, paragraph_id, session_id, word_index, word, paragraph_length, duration, completed_at) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "event/", true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-
-    var data = JSON.stringify({"user_id": user_id, 
-                               "paragraph_id": paragraph_id, 
-                               "session_id": session_id, 
-                               "word_index": word_index, 
-                               "word": normalize(word),
-                               "paragraph_length": paragraph_length,
-                               "duration": duration, 
-                               "completed_at": completed_at})
-    xhr.send(data);
-}
-
-function logFinalSent(user_id, paragraph_id, session_id, sentence, word_index, word, started_at, completed_at, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "final_sent/", true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-
-    var data = JSON.stringify({"user_id": user_id, 
-                               "session_id": session_id, 
-                               "paragraph_id": paragraph_id, 
-                               "sentence": sentence, 
-                               "word_index": word_index, 
-                               "word": normalize(word),
-                               "started_at": started_at,
-                               "completed_at": completed_at})
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            if (callback) {
-               callback()
-            }
-        }
-    }
-    xhr.send(data);
-}
-
-function normalize(word) {
-    word = word.toLowerCase()
-    word = word.replace(/^[^a-zA-Z0-9]*|/mg, "")
-    word = word.replace(/[^a-zA-Z0-9]*$|/mg, "")
-    if (word in wordMapping) {
-        return wordMapping[word]
-    }
-    return word
-}
-
-function readit() {
-    if (curr_paragraph_indx < paragraph.length) {
-        text = paragraph.slice(curr_paragraph_indx, curr_paragraph_indx+3).join(" ")
-        var msg = new SpeechSynthesisUtterance(text);
-        window.speechSynthesis.speak(msg);
-    }
-}
-
-function clockRunning(){
-    var timeElapsed = new Date(stopWatch.getTime())
-    var hour = timeElapsed.getUTCHours()
-    , min = timeElapsed.getUTCMinutes()
-    , sec = timeElapsed.getUTCSeconds()
-    , ms = timeElapsed.getUTCMilliseconds();
-
-    document.getElementsByClassName("hours")[0].innerHTML = hour > 9 ? hour : "0" + hour
-    document.getElementsByClassName("minutes")[0].innerHTML = min > 9 ? min : "0" + min
-    document.getElementsByClassName("seconds")[0].innerHTML = sec > 9 ? sec : "0" + sec
-    document.getElementsByClassName("milliseconds")[0].innerHTML = ms > 99 ? ms : ms > 9 ? "0" + ms : "00" + ms
-};
-
-function setIPA() {
-    if (curr_paragraph_indx < ipa.length) {
-        var choices = ipa[curr_paragraph_indx];
-        if (choices.length === 0) {
-            current_ipa = "/" + paragraph[curr_paragraph_indx] + "/"
-        } else {
-            current_ipa = "/" + choices[0] + "/"
-            for (i = 1; i < choices.length; i++) {
-                current_ipa += ", " + "/" + choices[i] + "/"
-            }
-        }
-    }
-}
-
-function reset(){
-    is_building_final_sent = false
-    curr_paragraph_indx = 0;
-    findNextWord();
-    setIPA();
-    session_id = generateRandomString(16);
-
-    document.getElementById('paragraph').innerHTML = "\u200B" + paragraph.join(" ")
-    document.getElementById('change_para').innerHTML = "Đổi Đoạn: " + next_count
-    if (next_count == 0){
-        document.getElementById("change_para").disabled = true;
-    } else {
-        document.getElementById("change_para").disabled = false;
-    }
-    curr_interim = ""
-    setTimeout(triggerContextMenu, 10);  
-    setTimeout(triggerContextMenu, 10);
-
-    stopWatch = new StopWatch();
-    started = setInterval(clockRunning, 200);  
-}
-
-function triggerContextMenu() {
-    var el = $('#paragraph')[0];
-    var range = document.createRange();
-    var sel = window.getSelection();
-    range.setStart(el.childNodes[0], 1);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-    $('#paragraph').data('textComplete').trigger("");/**/
-}
-
-function generateRandomString(length) {
-    var result = Date.now().toString(36)
-    for ( var i = 0; i < 8; i++ ) {
-        result += Math.floor(Math.random() * 36).toString(36)
-    }
-    return result;
-}
-
-function drawReadingHistory() {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "get_history/" + String(user_id) + "/" + String(paragraph_id), true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            var jsonContent = JSON.parse(xhr.responseText);
-
-            if (jsonContent.length == 0) {
-                document.getElementById('history').innerHTML = ""
-                return
-            }
-            
-            rows = [['Time', 'Duration', { role: 'style' }, 'Record Time']]
-            for (var i = 0; i < jsonContent.length; ++i) {
-                row = jsonContent[i]
-                color = row["no_repetition"] ? "red" : "";
-                rows.push([String(i+1), row["duration"]/1000, color, min_completion_time/1000])
-            }
-
-            while (rows.length < 10) {
-                rows.push([" ", null, '', null])
-            }
-
-            var data = new google.visualization.arrayToDataTable(rows);
-            var options = {
-                title: 'Lịch Sử Luyện Tập',
-                seriesType: 'bars',
-                legend: {position: "none"},
-                series: {
-                    0: {
-                        type: "bar"
-                    },
-                    1: {
-                        type: 'line',
-                        lineDashStyle: [3, 4]
-                    },
-                },
-                theme: "material",
-                vAxis: {
-                    viewWindow: {
-                        min: 0
-                    }
-                }
-            }
-
-            var chart = new google.visualization.ComboChart(document.getElementById('history'));
-            chart.draw(data,options);
-        }
-    }
-    xhr.send();
-}
-
-function login() {
-    user_name = "";
-    person = prompt("Please enter your name:", "");
-    if ((person !== null) & (person !== "")) {
-        user_name = person;
-        setCookie("user_name", user_name, 14)
-        startItAll()
-    }
-}
-
-document.addEventListener("keydown", function(e) {
-    if (e.keyCode == 32) {
-        e.preventDefault();
-        readit();
-    }
-
-    if (e.keyCode == 13) {
-        e.preventDefault();
-        if (is_building_final_sent) {
-            recognition.stop();
-            manual_reset = true;
-        } else {
-            reset();
-        }
-    }
-
-    if (e.keyCode == 17) {
-        e.preventDefault();
-    }
-    triggerContextMenu()
-});
-
-document.addEventListener("keyup", function(e) {
-    if (e.keyCode == 32) {
-        e.preventDefault();
-    }
-
-    if (e.keyCode == 13) {
-        e.preventDefault();
-    }
-
-    if (e.keyCode == 17) {
-        e.preventDefault();
-    }
-    triggerContextMenu()
-});
-
-function nextPara() {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "next_para/" + String(user_id), true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            var jsonContent = JSON.parse(xhr.responseText);
-            next_count = jsonContent["next_count"];
-            startItAll();
-        }
-    }
-    xhr.send();    
-}
-</script>
 </html>
