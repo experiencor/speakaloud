@@ -13,6 +13,11 @@ function levenshteinSimilarity(s1, s2) {
 }
 
 
+function roundTwo(number) {
+    return Math.round(number*100)/100
+}
+
+
 function levenshteinDistance(a, b) {
     if (a === b) {
         return 0;

@@ -411,8 +411,8 @@ function drawReadingHistory() {
                 row = jsonContent[i]
 
                 trials.push(i + 1);
-                durations.push({y: row["duration"]/1000, color: row["no_repetition"] ? "red" : "#4285f4"})
-                records.push(min_completion_time/1000);
+                durations.push({y: roundTwo(row["duration"]/1000), color: row["no_repetition"] ? "red" : "#4285f4"})
+                records.push(roundTwo(min_completion_time/1000));
             }
 
             while (trials.length < 10) {

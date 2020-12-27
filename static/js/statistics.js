@@ -1,10 +1,6 @@
 var user_id = getCookie("user_id")
 getStats()
 
-function roundTwo(number) {
-    return Math.round(number*100)/100
-}
-
 function getStats() {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "get_stats/" + String(user_id), true);
