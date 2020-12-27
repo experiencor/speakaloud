@@ -1,6 +1,10 @@
 var user_id = getCookie("user_id")
 getStats()
 
+function roundTwo(number) {
+    return Math.round(number*100)/100
+}
+
 function getStats() {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "get_stats/" + String(user_id), true);
@@ -23,7 +27,7 @@ function draw_hard_word(word_list) {
     for (var i = 0; i < word_list.length; ++i) {
         row = word_list[i]
         trials.push(row[0]);
-        durations.push({y: row[1]/1000, color: "#4285f4"})
+        durations.push({y: roundTwo(row[1]/1000), color: "#4285f4"})
     }
 
     while (trials.length < 10) {
@@ -34,7 +38,7 @@ function draw_hard_word(word_list) {
     Highcharts.chart('hard_word', {
         chart: {
             type: 'bar',
-            height: 528
+            height: 628
         },
         title: {
             text: ''
@@ -65,7 +69,8 @@ function draw_hard_word(word_list) {
             bar: {
                 dataLabels: {
                     enabled: true
-                }
+                },
+                pointWidth: 20
             }
         },
         legend: {
@@ -96,7 +101,7 @@ function draw_word_time(word_list) {
     for (var i = 0; i < word_list.length; ++i) {
         row = word_list[i]
         trials.push(row[0]);
-        counts.push({y: row[1]/1000, color: "#4285f4"})
+        counts.push({y: roundTwo(row[1]/1000), color: "#4285f4"})
     }
 
     while (trials.length < 10) {
@@ -107,7 +112,7 @@ function draw_word_time(word_list) {
     Highcharts.chart('word_time', {
         chart: {
             type: 'column',
-            height: 200,
+            height: 250
         },
         title: {
             text: ''
@@ -126,8 +131,17 @@ function draw_word_time(word_list) {
         },  
         series: [{
             data: counts
-
         }],
+        plotOptions: {
+            series: {
+                dataLabels: {
+                    enabled: true
+                }
+            },
+            column: {
+                pointWidth: 20
+            }
+        },
         legend: false
     });
 }
@@ -149,7 +163,7 @@ function draw_word_count(word_list) {
     Highcharts.chart('word_count', {
         chart: {
             type: 'column',
-            height: 200,
+            height: 250,
         },
         title: {
             text: ''
@@ -170,6 +184,16 @@ function draw_word_count(word_list) {
             data: counts
 
         }],
+        plotOptions: {
+            series: {
+                dataLabels: {
+                    enabled: true
+                }
+            },
+            column: {
+                pointWidth: 20
+            }
+        },
         legend: false
     });
 }

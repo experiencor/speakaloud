@@ -451,6 +451,13 @@ function drawReadingHistory() {
                 tooltip: {
                     shared: true
                 },
+                plotOptions: {
+                    column: {
+                        dataLabels: {
+                            enabled: true
+                        }
+                    }
+                },
                 legend: false,
                 series: [{
                     name: 'Thời Gian',
