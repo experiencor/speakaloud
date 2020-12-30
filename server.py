@@ -178,6 +178,7 @@ def get_stats(user_id):
             results["daily_stats"] += [[row["date"], row["duration"], row["word_count"]]]
         if results["daily_stats"]:
             words = words[words.date >= results["daily_stats"][0][0]].copy()
+            words = words[words.date >= '2020-12-20'].copy()
 
         # compute word statistics
         cursor.execute(
@@ -194,6 +195,7 @@ def get_stats(user_id):
             final_sent_words["date"] = final_sent_words.created_at.map(lambda x: x.strftime("%Y-%m-%d"))
             if results["daily_stats"]:
                 final_sent_words = final_sent_words[final_sent_words.date >= results["daily_stats"][0][0]].copy()
+                final_sent_words = final_sent_words[final_sent_words.date >= '2020-12-20'].copy()
             final_sent_words = final_sent_words.groupby("session_id").last().reset_index()
             word_sessions = words.groupby("session_id")["completed_at"].max().reset_index()
             final_sent_words = final_sent_words.merge(word_sessions, on="session_id", how="left")
