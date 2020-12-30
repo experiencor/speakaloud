@@ -176,11 +176,8 @@ def get_stats(user_id):
 
         for _, row in daily_stats.tail(20).iterrows():
             results["daily_stats"] += [[row["date"], row["duration"], row["word_count"]]]
-        print(results["daily_stats"])
-        print(len(words))
         if results["daily_stats"]:
             words = words[words.date >= results["daily_stats"][0][0]].copy()
-        print(len(words))
 
         # compute word statistics
         cursor.execute(
@@ -194,6 +191,9 @@ def get_stats(user_id):
             combined_words = words[["word", "duration"]].copy()
         else:
             final_sent_words = final_sent_words.sort_values(["session_id", "completed_at"])
+            final_sent_words["date"] = final_sent_words.completed_at.map(lambda x: x.strftime("%Y-%m-%d"))
+            if results["daily_stats"]:
+                final_sent_words = final_sent_words[final_sent_words.date >= results["daily_stats"][0][0]].copy()
             final_sent_words = final_sent_words.groupby("session_id").last().reset_index()
             word_sessions = words.groupby("session_id")["completed_at"].max().reset_index()
             final_sent_words = final_sent_words.merge(word_sessions, on="session_id", how="left")
