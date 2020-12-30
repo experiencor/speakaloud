@@ -177,8 +177,10 @@ def get_stats(user_id):
         for _, row in daily_stats.tail(20).iterrows():
             results["daily_stats"] += [[row["date"], row["duration"], row["word_count"]]]
         print(results["daily_stats"])
-        #if results["daily_stats"]:
-        #    words = words[words.date >= results["daily_stats"][0][0]].copy()
+        print(len(words))
+        if results["daily_stats"]:
+            words = words[words.date >= results["daily_stats"][0][0]].copy()
+        print(len(words))
 
         # compute word statistics
         cursor.execute(
