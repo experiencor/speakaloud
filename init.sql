@@ -51,6 +51,14 @@ CREATE TABLE IF NOT EXISTS paragraph (
     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS stats (
+    id INT AUTO_INCREMENT   PRIMARY KEY,
+    user_id INT             NOT NULL,
+    stat_date  VARCHAR(64)  DEFAULT "",
+    stats VARCHAR(1024)     DEFAULT "",
+    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
+
 ALTER TABLE user        ADD level   INT         DEFAULT 1;
 ALTER TABLE paragraph   ADD level   INT         DEFAULT 1;
 ALTER TABLE paragraph   ADD source  VARCHAR(64) DEFAULT "";

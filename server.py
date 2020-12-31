@@ -154,6 +154,7 @@ def get_history(user_id, paragraph_id):
 def get_stats(user_id):
     results = {"word_stats": [], "daily_stats": []}
     connection = make_conn()
+    t1 = time.time()
     with connection.cursor() as cursor:
         cursor.execute(
             f"""SELECT user_id, session_id, word_index, word, duration, completed_at, created_at FROM event 
@@ -161,6 +162,8 @@ def get_stats(user_id):
         )
         result = cursor.fetchall()
         words = pd.DataFrame(result)
+        print("call event", time.time() - t1)
+        t1 = time.time()
 
         if len(words) == 0:
             words = pd.DataFrame(columns=["user_id", "session_id", "word_index", "word", "duration", \
@@ -179,6 +182,8 @@ def get_stats(user_id):
         if results["daily_stats"]:
             words = words[words.date >= results["daily_stats"][0][0]].copy()
             words = words[words.date >= '2020-12-20'].copy()
+        print("daily stats", time.time() - t1)
+        t1 = time.time()
 
         # compute word statistics
         cursor.execute(
@@ -187,6 +192,8 @@ def get_stats(user_id):
         )
         result = cursor.fetchall()
         final_sent_words = pd.DataFrame(result)
+        print("call final_sent", time.time() - t1)
+        t1 = time.time()
 
         if len(final_sent_words) == 0:
             combined_words = words[["word", "duration"]].copy()
@@ -217,6 +224,8 @@ def get_stats(user_id):
 
         for _, row in word_stats.head(20).iterrows():
             results["word_stats"] += [[row["word"], row["duration"]]]
+        print("word stats", time.time() - t1)
+        t1 = time.time()
     return json.dumps(results)
 
 
