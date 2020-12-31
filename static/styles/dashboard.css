@@ -75,6 +75,7 @@
 	  --yellow:  #ecb403;
 	  --green: #4ecc48;
 	  --teal: #2bcbba;
+	  --dark-pink: #c71c69;
 	  --cyan:  #1cc8e3;
 	  --white: #fff;
 	  --gray: #868e96;
@@ -10351,7 +10352,7 @@ button.close {
 .header {
 	padding-top: .75rem;
 	padding-bottom: .75rem;
-	background: linear-gradient(to left,#45aaf2,#45aaf2);
+	background: linear-gradient(to left,#ec82ef,#ec82ef);
 }
 .header-bg {
 	background: #1643A3;
