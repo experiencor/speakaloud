@@ -230,12 +230,13 @@ def get_stats(user_id):
 
     words = {}
     for _, row in stats.iterrows():
-        for word, [count, duration] in row["stats"]["dictionary"].items():
-            word = normalize(word)
-            if word not in words:
-                words[word] = duration/count
-            else:
-                words[word] = 0.1 * words[word] + 0.9 * (duration/count)
+        if "dictionary" in row["stats"]:
+            for word, [count, duration] in row["stats"]["dictionary"].items():
+                word = normalize(word)
+                if word not in words:
+                    words[word] = duration/count
+                else:
+                    words[word] = 0.1 * words[word] + 0.9 * (duration/count)
 
         if "word_count" in row["stats"]:
             results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]
