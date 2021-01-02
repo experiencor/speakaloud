@@ -167,6 +167,9 @@ def get_stats_for_one_date(user_id, date):
     if len(words) == 0:
         words = pd.DataFrame(columns=["user_id", "session_id", "word_index", "word", "duration", \
                                       "completed_at", "created_at"])
+    else:
+        stats["word_count"] = len(words)
+        stats["duration"] = sum(words["duration"])
         
     # stats from table final_sent
     with connection.cursor() as cursor:
@@ -196,9 +199,7 @@ def get_stats_for_one_date(user_id, date):
                                 final_sent_words[["word", "duration"]]])
     
     # compute the overall stats
-    if len(combined_words) > 0:
-        stats["word_count"] = len(combined_words)
-        stats["duration"] = sum(combined_words["duration"])
+    if len(combined_words) > 0:        
         dictionary = {}
         for _, row in combined_words.iterrows():
             if row["word"] not in dictionary:
@@ -225,18 +226,22 @@ def get_stats(user_id):
     stats["stats"] = stats["stats"].map(lambda text: json.loads(text))
     stats = stats.append({"stat_date": curr_date,
                           "stats": curr_stats}, ignore_index=True)
-    
+    stats.sort_values("stat_date", inplace=True)
+
     words = {}
     for _, row in stats.iterrows():
         for word, [count, duration] in row["stats"]["dictionary"].items():
             word = normalize(word)
             if word not in words:
-                words[word] = [0, 0]
-            words[word][0] += count
-            words[word][1] += duration
-        results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]
-    words = sorted([[duration/count, word] for word, [count, duration] in words.items() if word not in skipwords], reverse=True)
+                words[word] = duration/count
+            else:
+                words[word] = 0.1 * words[word] + 0.9 * (duration/count)
+
+        if "word_count" in row["stats"]:
+            results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]
+    words = sorted([[duration, word] for word, duration in words.items() if word not in skipwords], reverse=True)
     results["word_stats"] = words[:20]
+    results["daily_stats"] = results["daily_stats"][-20:]
 
     return json.dumps(results)
 
@@ -310,7 +315,7 @@ def next_para(user_id):
         if trial_count == max_tries-1 or not results["word_stats"]:
             query = f"*"
         else:
-            probs = np.array([prob for [_, prob] in results["word_stats"][:top]])
+            probs = np.array([prob for [prob, _] in results["word_stats"][:top]])
             top = min(top, len(probs))
             probs = probs / sum(probs)
             select_indices = set(np.random.choice(list(range(top)), size=select, replace=False, p=probs))
@@ -319,9 +324,9 @@ def next_para(user_id):
             un_select_words = []
             for i in range(top):
                 if i in select_indices:
-                    select_words += [results["word_stats"][i][0]]
+                    select_words += [results["word_stats"][i][1]]
                 else:
-                    un_select_words += [results["word_stats"][i][0]]
+                    un_select_words += [results["word_stats"][i][1]]
             query = " ".join(select_words)
             #query = "(" + " ".join(select_words) + ") AND !(" + " ".join(un_select_words) + ") AND (level: " + str(level) + ")"
         morphemes = []
