@@ -54,8 +54,8 @@ CREATE TABLE IF NOT EXISTS paragraph (
 CREATE TABLE IF NOT EXISTS stats (
     id INT AUTO_INCREMENT   PRIMARY KEY,
     user_id INT             NOT NULL,
-    stat_date  VARCHAR(64)  DEFAULT "",
-    stats VARCHAR(1024)     DEFAULT "",
+    stat_date VARCHAR(64)   DEFAULT "",
+    stats LONGTEXT,
     created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 

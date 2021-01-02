@@ -11,6 +11,7 @@ import datetime
 import time
 import regex as re
 import base64
+from datetime import timedelta
 import pandas as pd
 from elasticsearch import Elasticsearch
 from dateutil import parser
@@ -150,82 +151,93 @@ def get_history(user_id, paragraph_id):
     return json.dumps(list(json.loads(sessions.transpose().to_json()).values()))
 
 
+def get_stats_for_one_date(user_id, date):
+    next_date = (parser.parse(date) + timedelta(1)).strftime('%Y-%m-%d')
+    stats = {}
+    connection = make_conn()
+    
+    # stats from table event
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""SELECT user_id, session_id, word_index, word, duration, completed_at, created_at 
+                FROM event WHERE user_id={user_id} AND '{date}'<=created_at AND created_at<'{next_date}'"""
+        )
+        words = pd.DataFrame(cursor.fetchall())
+
+    if len(words) == 0:
+        words = pd.DataFrame(columns=["user_id", "session_id", "word_index", "word", "duration", \
+                                      "completed_at", "created_at"])
+        
+    # stats from table final_sent
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""select session_id, created_at, completed_at, word_index, word
+                FROM final_sent WHERE user_id={user_id} AND completed_at>0 AND word!=''
+                AND '{date}'<=created_at AND created_at<'{next_date}'"""
+        )
+        final_sent_words = pd.DataFrame(cursor.fetchall())
+    if len(final_sent_words) == 0:
+        final_sent_words = pd.DataFrame(columns=["session_id", "created_at", "completed_at", "word_index", "word"])
+    
+    # combine the stats from 2 tables
+    final_sent_words = final_sent_words.sort_values(["session_id", "completed_at"])
+    final_sent_words = final_sent_words.groupby("session_id").last().reset_index()
+    
+    word_sessions = words.groupby("session_id")["completed_at"].max().reset_index()
+    word_sessions.set_index("session_id", inplace=True)
+    final_sent_words.set_index("session_id", inplace=True)
+    final_sent_words = final_sent_words.merge(word_sessions, left_index=True, right_index=True, how="left")
+    final_sent_words.completed_at_y.fillna(0, inplace=True)
+    final_sent_words = final_sent_words[final_sent_words.completed_at_x > \
+                                        final_sent_words.completed_at_y]
+    final_sent_words["duration"] = final_sent_words.completed_at_x - \
+                                   final_sent_words.completed_at_y
+    combined_words = pd.concat([words[["word", "duration"]], 
+                                final_sent_words[["word", "duration"]]])
+    
+    # compute the overall stats
+    if len(combined_words) > 0:
+        stats["word_count"] = len(combined_words)
+        stats["duration"] = sum(combined_words["duration"])
+        dictionary = {}
+        for _, row in combined_words.iterrows():
+            if row["word"] not in dictionary:
+                dictionary[row["word"]] = [0, 0]
+            dictionary[row["word"]][0] += 1
+            dictionary[row["word"]][1] += row["duration"]
+        stats["dictionary"] = dictionary
+        
+    return stats
+
+
 @app.route('/get_stats/<user_id>', methods=['POST'])
 def get_stats(user_id):
     results = {"word_stats": [], "daily_stats": []}
+    curr_date = datetime.datetime.today().strftime('%Y-%m-%d')
+    curr_stats = get_stats_for_one_date(user_id, curr_date)
+
     connection = make_conn()
-    t1 = time.time()
     with connection.cursor() as cursor:
         cursor.execute(
-            f"""SELECT user_id, session_id, word_index, word, duration, completed_at, created_at FROM event 
-                WHERE user_id={user_id}"""
+            f"""SELECT stat_date, stats FROM stats WHERE user_id={user_id}"""
         )
-        result = cursor.fetchall()
-        words = pd.DataFrame(result)
-        print("call event", time.time() - t1)
-        t1 = time.time()
+        stats = pd.DataFrame(cursor.fetchall())
+    stats["stats"] = stats["stats"].map(lambda text: json.loads(text))
+    stats = stats.append({"stat_date": curr_date,
+                          "stats": curr_stats}, ignore_index=True)
+    
+    words = {}
+    for _, row in stats.iterrows():
+        for word, [count, duration] in row["stats"]["dictionary"].items():
+            word = normalize(word)
+            if word not in words:
+                words[word] = [0, 0]
+            words[word][0] += count
+            words[word][1] += duration
+        results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]
+    words = sorted([[duration/count, word] for word, [count, duration] in words.items() if word not in skipwords], reverse=True)
+    results["word_stats"] = words[:20]
 
-        if len(words) == 0:
-            words = pd.DataFrame(columns=["user_id", "session_id", "word_index", "word", "duration", \
-                                          "completed_at", "created_at"])
-
-        # compute daily statistics
-        words["date"] = words.created_at.map(lambda x: x.strftime("%Y-%m-%d"))
-        daily_stats = words.groupby("date").apply(lambda row: pd.Series({
-            "duration": row["duration"].mean(), 
-            "word_count": len(row)
-        })).reset_index()
-        daily_stats.sort_values("date", inplace=True)
-
-        for _, row in daily_stats.tail(20).iterrows():
-            results["daily_stats"] += [[row["date"], row["duration"], row["word_count"]]]
-        if results["daily_stats"]:
-            words = words[words.date >= results["daily_stats"][0][0]].copy()
-            words = words[words.date >= '2020-12-20'].copy()
-        print("daily stats", time.time() - t1)
-        t1 = time.time()
-
-        # compute word statistics
-        cursor.execute(
-            f"""select session_id, created_at, completed_at, word_index, word
-                FROM final_sent WHERE user_id={user_id} AND completed_at>0 and word!=''"""
-        )
-        result = cursor.fetchall()
-        final_sent_words = pd.DataFrame(result)
-        print("call final_sent", time.time() - t1)
-        t1 = time.time()
-
-        if len(final_sent_words) == 0:
-            combined_words = words[["word", "duration"]].copy()
-        else:
-            final_sent_words = final_sent_words.sort_values(["session_id", "completed_at"])
-            final_sent_words["date"] = final_sent_words.created_at.map(lambda x: x.strftime("%Y-%m-%d"))
-            if results["daily_stats"]:
-                final_sent_words = final_sent_words[final_sent_words.date >= results["daily_stats"][0][0]].copy()
-                final_sent_words = final_sent_words[final_sent_words.date >= '2020-12-20'].copy()
-            final_sent_words = final_sent_words.groupby("session_id").last().reset_index()
-            word_sessions = words.groupby("session_id")["completed_at"].max().reset_index()
-            final_sent_words = final_sent_words.merge(word_sessions, on="session_id", how="left")
-            final_sent_words.completed_at_y.fillna(0, inplace=True)
-            final_sent_words = final_sent_words[final_sent_words.completed_at_x > \
-                                                final_sent_words.completed_at_y]
-            final_sent_words["duration"] = final_sent_words.completed_at_x - \
-                                           final_sent_words.completed_at_y
-            combined_words = pd.concat([words[["word", "duration"]], 
-                                        final_sent_words[["word", "duration"]]])
-
-        if len(combined_words) == 0:
-            return json.dumps(results)
-            
-        combined_words["word"] = combined_words.word.map(normalize)
-        word_stats = combined_words.groupby("word")["duration"].mean().reset_index()
-        word_stats = word_stats.sort_values("duration", ascending=False)
-        word_stats = word_stats[~word_stats.word.isin(skipwords)]
-
-        for _, row in word_stats.head(20).iterrows():
-            results["word_stats"] += [[row["word"], row["duration"]]]
-        print("word stats", time.time() - t1)
-        t1 = time.time()
     return json.dumps(results)
 
 
@@ -382,3 +394,4 @@ if __name__ == "__main__":
     #app.run(host="0.0.0.0", port=5000, debug=True)
     #app.run(host="0.0.0.0", ssl_context='adhoc')
     app.run(host="0.0.0.0", port=443, ssl_context=('certificate.crt', 'private.key',))
+
