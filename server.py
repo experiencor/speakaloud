@@ -344,22 +344,31 @@ def next_para(user_id):
                   "bool": {
                       "should": 
                         [
-                            {
-                              "match": {
-                                    "ipa": {
-                                        "query": f"\"{morphemes}\"",
-                                        "fuzziness": "AUTO"
-                                    }
+                          {
+                            "constant_score": {
+                              "filter": {
+                                "match": {
+                                  "ipa": {
+                                      "query": f"\"{morphemes}\"",
+                                      "fuzziness": "AUTO"
+                                  }
                                 }
-                            },
-                            {
-                              "match": {
-                                "content": {
-                                        "query": f"\"{query}\"",
-                                        "fuzziness": "AUTO"
-                                    }
-                                }
+                              },
+                              "boost": 1
                             }
+                          },
+                          {
+                            "constant_score": {
+                              "filter": {
+                                "match": {
+                                  "content": {
+                                    "query": f"\"{query}\"",
+                                  }
+                                }
+                              },
+                              "boost": 10
+                            }
+                          }
                         ],
                         "filter": {
                             "term": {
