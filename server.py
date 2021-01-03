@@ -332,12 +332,12 @@ def next_para(user_id):
                     un_select_words += [results["word_stats"][i][1]]
             query = " ".join(select_words)
             #query = "(" + " ".join(select_words) + ") AND !(" + " ".join(un_select_words) + ") AND (level: " + str(level) + ")"
-        morphemes = []
+        ipas = []
         for word in query.split():
-            morphemes += [morpheme for ipa in transcribe(word) for morpheme in ipa]
-        morphemes = normalize_ipa(" ".join(morphemes))
+            ipas += ["".join(ipa) for ipa in transcribe(word)]
+        ipas = normalize_ipa(" ".join(ipas))
         print(query)
-        print(morphemes)
+        print(ipas)
 
         if query != "*":
             res = es.search(index="paragraph", body={
@@ -347,28 +347,19 @@ def next_para(user_id):
                       "should": 
                         [
                           {
-                            "constant_score": {
-                              "filter": {
-                                "match": {
-                                  "ipa": {
-                                      "query": f"\"{morphemes}\"",
-                                      "fuzziness": "AUTO"
-                                  }
-                                }
-                              },
-                              "boost": 1
+                            "match": {
+                              "ipa": {
+                                  "query": f"\"{ipas}\"",
+                                  "fuzziness": "AUTO"
+                              }
                             }
                           },
                           {
-                            "constant_score": {
-                              "filter": {
-                                "match": {
-                                  "content": {
-                                    "query": f"\"{query}\"",
-                                  }
-                                }
-                              },
-                              "boost": 10
+                            "match": {
+                              "content": {
+                                "query": f"\"{query}\"",
+                                "fuzziness": "AUTO"
+                              }
                             }
                           }
                         ],
