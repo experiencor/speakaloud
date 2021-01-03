@@ -238,7 +238,7 @@ def get_stats(user_id):
                 if word not in words:
                     words[word] = duration/count
                 else:
-                    words[word] = 0.2 * words[word] + 0.8 * (duration/count)
+                    words[word] = 0.6 * words[word] + 0.4 * (duration/count)
 
         if "word_count" in row["stats"]:
             results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]
