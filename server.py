@@ -223,6 +223,8 @@ def get_stats(user_id):
             f"""SELECT stat_date, stats FROM stats WHERE user_id={user_id}"""
         )
         stats = pd.DataFrame(cursor.fetchall())
+    if len(stats) == 0:
+        stats = pd.DataFrame(columns=["stat_date", "stats"])
     stats["stats"] = stats["stats"].map(lambda text: json.loads(text))
     stats = stats.append({"stat_date": curr_date,
                           "stats": curr_stats}, ignore_index=True)
@@ -236,7 +238,7 @@ def get_stats(user_id):
                 if word not in words:
                     words[word] = duration/count
                 else:
-                    words[word] = 0.1 * words[word] + 0.9 * (duration/count)
+                    words[word] = 0.2 * words[word] + 0.8 * (duration/count)
 
         if "word_count" in row["stats"]:
             results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]
