@@ -80,7 +80,7 @@ def create_user(username):
         connection.commit()
     
     with connection.cursor() as cursor:
-        cursor.execute(f"INSERT INTO user (username, next_paragraph_id, level) VALUES (\"{username}\", 25, 2)")
+        cursor.execute(f"INSERT INTO user (username, next_paragraph_id, level, next_count) VALUES (\"{username}\", 25, 2, 10)")
         user_id = cursor.lastrowid
         connection.commit()
     return json.dumps({"user_id": user_id})
@@ -89,6 +89,13 @@ def create_user(username):
 @app.route('/get_user_profile/<user_id>', methods=['POST'])
 def get_user_profile(user_id):
     user_id = int(user_id)
+    results = json.loads(get_stats(user_id))
+    difficult_words = set([word for duration, word in results["word_stats"] if duration > 2000])
+
+    average_duration, word_count = 0, 0
+    if (results["daily_stats"]):
+        average_duration, word_count = results["daily_stats"][-1][1:]
+
     connection = make_conn()
     with connection.cursor() as cursor:
         cursor.execute(f"SELECT * FROM user WHERE id={user_id} LIMIT 1;")
@@ -101,6 +108,7 @@ def get_user_profile(user_id):
         words = result["content"].split()
         ipas = [["".join(ipa) for ipa in transcribe(word)] for word in words]
         stems = [stem(word) for word in words]
+        difficult_words = [int(normalize(word) in difficult_words) for word in words]
 
         cursor.execute(f"""SELECT min(completed_at) as min_completion_time FROM event WHERE 
                            paragraph_id={paragraph_id} AND word_index=(paragraph_length-1) LIMIT 1;""")
@@ -112,7 +120,17 @@ def get_user_profile(user_id):
             min_completion_time = result['min_completion_time']
 
         connection.commit()
-    return json.dumps({"next_count": next_count, "paragraph_id": paragraph_id, "words": words, "ipas": ipas, "stems": stems, "min_completion_time": min_completion_time, "skipwords": list(skipwords), "word_mapping": word_mapping})
+    return json.dumps({"next_count": next_count, 
+                       "paragraph_id": paragraph_id, 
+                       "words": words, 
+                       "ipas": ipas, 
+                       "stems": stems, 
+                       "average_duration": average_duration,
+                       "word_count": word_count,
+                       "min_completion_time": min_completion_time, 
+                       "skipwords": list(skipwords), 
+                       "word_mapping": word_mapping, 
+                       "difficult_words": difficult_words})
 
 
 @app.route('/get_history/<user_id>/<paragraph_id>', methods=['POST'])
@@ -238,7 +256,8 @@ def get_stats(user_id):
                 if word not in words:
                     words[word] = duration/count
                 else:
-                    words[word] = 0.5 * words[word] + 0.5 * (duration/count)
+                    discount = (1-0.5) ** count
+                    words[word] = discount * words[word] + (1 - discount) * (duration/count)
 
         if "word_count" in row["stats"]:
             results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]

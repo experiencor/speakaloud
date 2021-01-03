@@ -79,8 +79,18 @@ async function startItAll() {
     norm_para = paragraph.map(word => normalize(word))
     ipa = results["ipas"];
     stems = results["stems"];
+    difficult_words = results["difficult_words"]
+    highlight_paragraph = paragraph.map((word, index) => {
+        if (difficult_words[index] == 1) {
+            return '<span class="read_para">' + word + '</span>'
+        } else {
+            return word
+        }
+    })
     skipwords = new Set(results["skipwords"]);
-    min_completion_time = results["min_completion_time"]
+    min_completion_time = results["min_completion_time"];
+    word_count = results["word_count"];
+    average_duration = roundTwo(results["average_duration"]/word_count/1000);
 
     reset();
 
@@ -140,8 +150,8 @@ async function startItAll() {
                 findNextWord();
                 curr_interim_indx = i + 1
 
-                $('#paragraph').html('<span class="read_para">' + paragraph.slice(0, curr_paragraph_indx).join(" ") + "</span> " +
-                    paragraph.slice(curr_paragraph_indx).join(" "))
+                $('#paragraph').html('<span class="read_para">' + highlight_paragraph.slice(0, curr_paragraph_indx).join(" ") + "</span> " +
+                    '<span id="unread">' + highlight_paragraph.slice(curr_paragraph_indx).join(" ")) + "</span> "
                 
                 setIPA();
                 triggerContextMenu();
@@ -167,6 +177,7 @@ async function startItAll() {
         if (isFinal) {
             curr_interim_indx = 0
             curr_interim = ""
+            triggerContextMenu()
 
             completed_at = stopWatch.getTime()
             var word = "";
@@ -208,7 +219,9 @@ async function startItAll() {
         recognition.start()
     }    
 
-    drawReadingHistory()
+    drawReadingHistory();
+    document.getElementById("word_count").innerHTML = word_count
+    document.getElementById("average_duration").innerHTML = average_duration
 }
 
 function letItPass(spoken_word, norm_word, stem_word, duration) {
@@ -355,7 +368,7 @@ function reset(){
     setIPA();
     session_id = generateRandomString(16);
 
-    document.getElementById('paragraph').innerHTML = "\u200B" + paragraph.join(" ")
+    document.getElementById('paragraph').innerHTML = "\u200B" + '<span id="unread">' + highlight_paragraph.join(" ") + "</span>"
     document.getElementById('change_para').innerHTML = "Đổi Đoạn: " + next_count
     if (next_count == 0){
         document.getElementById("change_para").disabled = true;
@@ -371,14 +384,16 @@ function reset(){
 }
 
 function triggerContextMenu() {
-    var el = $('#paragraph')[0];
+    var el = $('#unread')[0];
     var range = document.createRange();
     var sel = window.getSelection();
-    range.setStart(el.childNodes[0], 1);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-    $('#paragraph').data('textComplete').trigger("");/**/
+    if (el.childNodes[0]) {
+        range.setStart(el.childNodes[0], 0);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        $('#paragraph').data('textComplete').trigger("");/**/
+    }
 }
 
 function generateRandomString(length) {
