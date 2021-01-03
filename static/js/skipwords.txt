@@ -11,6 +11,7 @@ kish
 sardines
 sardine
 li
+turks
 its
 taliban
 earned
