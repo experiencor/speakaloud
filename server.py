@@ -230,7 +230,7 @@ def get_stats_for_one_date(user_id, date):
 
 
 @app.route('/get_stats/<user_id>', methods=['POST'])
-def get_stats(user_id):
+def get_stats(user_id, top=20):
     results = {"word_stats": [], "daily_stats": []}
     curr_date = datetime.datetime.today().strftime('%Y-%m-%d')
     curr_stats = get_stats_for_one_date(user_id, curr_date)
@@ -273,7 +273,7 @@ def get_stats(user_id):
         if "word_count" in row["stats"]:
             results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]
     words = sorted([[duration, word, int(word in paragraph_words)] for word, duration in words.items() if word not in skipwords], reverse=True)
-    results["word_stats"] = words[:20]
+    results["word_stats"] = words[:top]
     results["daily_stats"] = results["daily_stats"][-20:]
 
     return json.dumps(results)
@@ -338,10 +338,11 @@ def next_para(user_id):
     next_count -= 1
 
     # get the word stats of the user
-    results = json.loads(get_stats(user_id))
+    results = json.loads(get_stats(user_id, 100))
 
     # find a suitable paragraph
-    top, select = 20, 15
+    difficult_level = 0.5
+    top = 100 * difficult_level
     trial_count, max_tries = 0, 10
     paragraph_id = None
     while trial_count < max_tries:
