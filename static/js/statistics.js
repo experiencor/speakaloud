@@ -23,7 +23,7 @@ function draw_hard_word(word_list) {
     for (var i = 0; i < word_list.length; ++i) {
         row = word_list[i]
         trials.push(row[1]);
-        durations.push({y: roundTwo(row[0]/1000), color: "#4285f4"})
+        durations.push({y: roundTwo(row[0]/1000), color: row[2] == 0 ? "#4285f4" : "red"})
     }
 
     while (trials.length < 10) {

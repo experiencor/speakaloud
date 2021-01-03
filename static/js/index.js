@@ -182,8 +182,8 @@ async function startItAll() {
             completed_at = stopWatch.getTime()
             var word = "";
             if (curr_paragraph_indx == paragraph.length) {
-                //const ut = new SpeechSynthesisUtterance('Well done!');
-                //speechSynthesis.speak(ut);
+                const ut = new SpeechSynthesisUtterance('Well done!');
+                speechSynthesis.speak(ut);
                 logFinalSent(user_id, 
                              paragraph_id, 
                              session_id, 

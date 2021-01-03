@@ -90,11 +90,11 @@ def create_user(username):
 def get_user_profile(user_id):
     user_id = int(user_id)
     results = json.loads(get_stats(user_id))
-    difficult_words = set([word for duration, word in results["word_stats"] if duration > 2000])
+    difficult_words = set([word for duration, word, _ in results["word_stats"] if duration > 2000])
 
     average_duration, word_count = 0, 0
     if (results["daily_stats"]):
-        average_duration, word_count = results["daily_stats"][-1][1:]
+        average_duration, word_count = results["daily_stats"][-1][1:3]
 
     connection = make_conn()
     with connection.cursor() as cursor:
@@ -248,6 +248,17 @@ def get_stats(user_id):
                           "stats": curr_stats}, ignore_index=True)
     stats.sort_values("stat_date", inplace=True)
 
+    with connection.cursor() as cursor:
+        cursor.execute(f"SELECT * FROM user WHERE id={user_id} LIMIT 1;")
+        user = cursor.fetchone()
+        paragraph_id = user["next_paragraph_id"]
+        next_count = user["next_count"]
+
+        cursor.execute(f"SELECT * FROM paragraph WHERE id={paragraph_id} LIMIT 1;")
+        result = cursor.fetchone()
+        paragraph_words = result["content"].split()
+        paragraph_words = set([normalize(word) for word in paragraph_words])
+
     words = {}
     for _, row in stats.iterrows():
         if "dictionary" in row["stats"]:
@@ -261,7 +272,7 @@ def get_stats(user_id):
 
         if "word_count" in row["stats"]:
             results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]
-    words = sorted([[duration, word] for word, duration in words.items() if word not in skipwords], reverse=True)
+    words = sorted([[duration, word, int(word in paragraph_words)] for word, duration in words.items() if word not in skipwords], reverse=True)
     results["word_stats"] = words[:20]
     results["daily_stats"] = results["daily_stats"][-20:]
 
@@ -337,7 +348,7 @@ def next_para(user_id):
         if trial_count == max_tries-1 or not results["word_stats"]:
             query = f"*"
         else:
-            probs = np.array([prob for [prob, _] in results["word_stats"][:top]])
+            probs = np.array([prob for [prob, _, _] in results["word_stats"][:top]])
             top = min(top, len(probs))
             probs = probs / sum(probs)
             select_indices = set(np.random.choice(list(range(top)), size=select, replace=False, p=probs))
@@ -384,7 +395,8 @@ def next_para(user_id):
                             "term": {
                                 "level": level
                             }
-                        }
+                        },
+                        "minimum_should_match": 1
                     }
                 }
             })
