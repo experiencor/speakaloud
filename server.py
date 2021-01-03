@@ -349,16 +349,14 @@ def next_para(user_id):
                           {
                             "match": {
                               "ipa": {
-                                  "query": f"\"{ipas}\"",
-                                  "fuzziness": "AUTO"
+                                  "query": f"\"{ipas}\""
                               }
                             }
                           },
                           {
                             "match": {
                               "content": {
-                                "query": f"\"{query}\"",
-                                "fuzziness": "AUTO"
+                                "query": f"\"{query}\""
                               }
                             }
                           }
