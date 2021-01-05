@@ -90,7 +90,7 @@ def create_user(username):
 def get_user_profile(user_id):
     user_id = int(user_id)
     results = json.loads(get_stats(user_id))
-    difficult_words = set([word for duration, word, _ in results["word_stats"] if duration > 2000])
+    difficult_words = set([word for duration, word, _ in results["word_stats"] if duration >= 4000])
 
     average_duration, word_count = 0, 0
     if (results["daily_stats"]):
@@ -230,7 +230,7 @@ def get_stats_for_one_date(user_id, date):
 
 
 @app.route('/get_stats/<user_id>', methods=['POST'])
-def get_stats(user_id):
+def get_stats(user_id, top=20):
     results = {"word_stats": [], "daily_stats": []}
     curr_date = datetime.datetime.today().strftime('%Y-%m-%d')
     curr_stats = get_stats_for_one_date(user_id, curr_date)
@@ -272,8 +272,8 @@ def get_stats(user_id):
 
         if "word_count" in row["stats"]:
             results["daily_stats"] += [[row["stat_date"], row["stats"]["duration"], row["stats"]["word_count"]]]
-    words = sorted([[duration, word, int(word in paragraph_words)] for word, duration in words.items() if word not in skipwords], reverse=True)
-    results["word_stats"] = words[:20]
+    words = sorted([[duration, word, int(word in paragraph_words and duration >= 4000)] for word, duration in words.items() if word not in skipwords], reverse=True)
+    results["word_stats"] = words[:top]
     results["daily_stats"] = results["daily_stats"][-20:]
 
     return json.dumps(results)
@@ -323,8 +323,8 @@ def get_user(user_id):
     return user
 
 
-@app.route('/next_para/<user_id>', methods=['POST'])
-def next_para(user_id):
+@app.route('/next_para/<user_id>/<difficulty>', methods=['POST'])
+def next_para(user_id, difficulty):
     # get the level of the user
     user = get_user(user_id)
     level, next_paragraph_id, next_count = user["level"], user["next_paragraph_id"], user["next_count"]
@@ -338,34 +338,26 @@ def next_para(user_id):
     next_count -= 1
 
     # get the word stats of the user
-    results = json.loads(get_stats(user_id))
+    results = json.loads(get_stats(user_id, 100))
 
     # find a suitable paragraph
-    top, select = 20, 15
+    mean = int((int(difficulty) - 1) / (10 - 1) * len(results["word_stats"]))
     trial_count, max_tries = 0, 10
     paragraph_id = None
     while trial_count < max_tries:
         if trial_count == max_tries-1 or not results["word_stats"]:
             query = f"*"
         else:
-            probs = np.array([prob for [prob, _, _] in results["word_stats"][:top]])
-            top = min(top, len(probs))
-            probs = probs / sum(probs)
-            select_indices = set(np.random.choice(list(range(top)), size=select, replace=False, p=probs))
-
-            select_words = []
-            un_select_words = []
-            for i in range(top):
-                if i in select_indices:
-                    select_words += [results["word_stats"][i][1]]
-                else:
-                    un_select_words += [results["word_stats"][i][1]]
+            indices = np.random.normal(mean, 10, 10)
+            print(mean, indices)
+            select_words = [results["word_stats"][int(index)][1] for index in indices if 0 <= index < len(results["word_stats"])]
             query = " ".join(select_words)
-            #query = "(" + " ".join(select_words) + ") AND !(" + " ".join(un_select_words) + ") AND (level: " + str(level) + ")"
+
         ipas = []
         for word in query.split():
             ipas += ["".join(ipa) for ipa in transcribe(word)]
         ipas = normalize_ipa(" ".join(ipas))
+
         print(query)
         print(ipas)
 

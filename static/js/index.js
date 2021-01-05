@@ -369,11 +369,14 @@ function reset(){
     session_id = generateRandomString(16);
 
     document.getElementById('paragraph').innerHTML = "\u200B" + '<span id="unread">' + highlight_paragraph.join(" ") + "</span>"
-    document.getElementById('change_para').innerHTML = "Đổi Đoạn: " + next_count
+    document.getElementById('change_para_easy').innerHTML = "Đoạn Dễ: " + next_count
+    document.getElementById('change_para_hard').innerHTML = "Đoạn Khó: " + next_count
     if (next_count == 0){
-        document.getElementById("change_para").disabled = true;
+        document.getElementById("change_para_easy").disabled = true;
+        document.getElementById("change_para_hard").disabled = true;
     } else {
-        document.getElementById("change_para").disabled = false;
+        document.getElementById("change_para_easy").disabled = false;
+        document.getElementById("change_para_hard").disabled = false;
     }
     curr_interim = ""
     setTimeout(triggerContextMenu, 10);  
@@ -542,9 +545,9 @@ document.addEventListener("keyup", function(e) {
     triggerContextMenu()
 });
 
-function nextPara() {
+function nextPara(difficulty) {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "next_para/" + String(user_id), true);
+    xhr.open("POST", "next_para/" + user_id + "/" + difficulty, true);
     xhr.setRequestHeader("Content-Type", "application/json");
 
     xhr.onreadystatechange = function () {
