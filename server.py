@@ -37,8 +37,8 @@ word_mapping = [[key, val] for key,val in word_mapping.items()]
 def make_conn():
     return pymysql.connect(host='localhost',
                            user='root',
-                           password='root',
-                           db='speaktests',
+                           password='speakaloud',
+                           db='speakaloud',
                            charset='utf8mb4',
                            cursorclass=pymysql.cursors.DictCursor)
 
@@ -360,6 +360,8 @@ def next_para(user_id, difficulty):
 
         print(query)
         print(ipas)
+        # to be improved
+        query = "*"
 
         if query != "*":
             res = es.search(index="paragraph", body={

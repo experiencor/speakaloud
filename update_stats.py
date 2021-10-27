@@ -3,13 +3,14 @@ import json
 import pandas as pd
 import argparse
 from server import get_stats_for_one_date, get_stats
+from pymysql.converters import escape_string
 
 connection = pymysql.connect(host='localhost',
-                             user='root',
-                             password='root',
-                             db='speaktests',
-                             charset='utf8mb4',
-                             cursorclass=pymysql.cursors.DictCursor)
+                           user='root',
+                           password='speakaloud',
+                           db='speakaloud',
+                           charset='utf8mb4',
+                           cursorclass=pymysql.cursors.DictCursor)
 
 with connection.cursor() as cursor:
     cursor.execute(
@@ -37,7 +38,7 @@ def update_stats(date):
                 cursor.execute(f"DELETE FROM stats WHERE user_id={user_id} AND stat_date='{date}';")
                 connection.commit()
 
-        stats = pymysql.escape_string(json.dumps(stats))
+        stats = escape_string(json.dumps(stats))
         insertion_command = f"INSERT INTO stats (user_id, stat_date, stats) VALUES ({user_id}, '{date}', '{stats}');"
         with connection.cursor() as cursor:
             cursor.execute(insertion_command)
